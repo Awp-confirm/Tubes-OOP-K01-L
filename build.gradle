@@ -1,0 +1,36 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+    // kalau masih ada 'id "java"' dari template, biarkan saja, tidak masalah
+}
+
+group = 'id.ac.itb.if2010'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+application {
+    // ganti dengan full class name JavaFX-mu
+    mainClass = 'ayank.MainApp'
+}
+
+javafx {
+    version = '21'              // JavaFX 21
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+}
+
+test {
+    useJUnitPlatform()
+}
