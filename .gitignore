@@ -22,5 +22,5 @@
 hs_err_pid*
 replay_pid*
 
-# Ignore dummy classes
+# Ignore dummy classes folder
 **/dummy/
