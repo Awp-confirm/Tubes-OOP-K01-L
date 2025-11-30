@@ -20,6 +20,7 @@ public abstract class Station {
      */
     public abstract void onInteract(Chef chef, GameState state);
 
+    // Getter & Setter
     public String getName() {
         return name;
     }
