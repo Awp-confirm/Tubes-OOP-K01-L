@@ -1,5 +1,7 @@
 package nimons.station;
 
+// DEPENDENCY ALERT:
+// Class-class berikut masih menggunakan versi DUMMY dari package nimons.dummy. (internal)
 import nimons.dummy.Chef;
 import nimons.dummy.GameState;
 import nimons.dummy.Position;
