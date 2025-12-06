@@ -1,12 +1,8 @@
-package nimons.station;
+package nimons.entity.station;
 
-// DEPENDENCY ALERT:
-// Class-class berikut masih menggunakan versi DUMMY dari package nimons.dummy. (internal)
-import nimons.dummy.Chef;
-import nimons.dummy.GameState;
-import nimons.dummy.Item;
-import nimons.dummy.Position;
-import nimons.dummy.RecipeManager;
+import nimons.entity.chef.Chef;
+import nimons.entity.common.Position;
+import nimons.entity.item.Item;
 
 /**
  * AssemblyStation berfungsi sebagai tempat menaruh bahan (Drop)
@@ -26,7 +22,7 @@ public class AssemblyStation extends Station {
      * Mendukung aksi: Pick Up, Drop, dan Merge/Assembly.
      */
     @Override
-    public void onInteract(Chef chef, GameState state) {
+    public void onInteract(Chef chef) {
         if (chef == null) return;
 
         Item itemHand = chef.getInventory();
@@ -63,8 +59,9 @@ public class AssemblyStation extends Station {
      * Jika sukses, item di meja berubah dan item di tangan hilang.
      */
     private void processAssembly(Chef chef, Item itemHand, Item itemTable) {
-        // Logika pencocokan resep ke RecipeManager
-        Item hasil = RecipeManager.getResult(itemHand, itemTable);
+        // Logika pencocokan resep ke Recipe
+        // TODO: Implement recipe matching using Recipe class
+        Item hasil = null; // RecipeManager.getResult(itemHand, itemTable);
 
         if (hasil != null) {
             // Berhasil: Update item meja menjadi hasil masakan

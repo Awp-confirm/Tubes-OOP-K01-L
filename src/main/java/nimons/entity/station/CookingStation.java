@@ -1,12 +1,9 @@
-package nimons.station;
+package nimons.entity.station;
 
-// DEPENDENCY ALERT:
-// Class-class berikut masih menggunakan versi DUMMY dari package nimons.dummy. (internal)
-import nimons.dummy.Chef;
-import nimons.dummy.GameState;
-import nimons.dummy.Item;
-import nimons.dummy.Position;
-import nimons.dummy.Utensils;
+import nimons.entity.chef.Chef;
+import nimons.entity.common.Position;
+import nimons.entity.item.Item;
+import nimons.entity.item.KitchenUtensil;
 
 /**
  * CookingStation merepresentasikan kompor atau oven.
@@ -15,7 +12,7 @@ import nimons.dummy.Utensils;
  */
 public class CookingStation extends Station {
 
-    private Utensils utensilsOnStation; // Menyimpan alat masak (Panci/Wajan) yang sedang berada di atas kompor
+    private KitchenUtensil utensilsOnStation; // Menyimpan alat masak (Panci/Wajan) yang sedang berada di atas kompor
 
     public CookingStation(String name, Position position) {
         super(name, position);
@@ -23,7 +20,7 @@ public class CookingStation extends Station {
     }
 
     @Override
-    public void onInteract(Chef chef, GameState state) {
+    public void onInteract(Chef chef) {
         if (chef == null) return;
 
         Item itemHand = chef.getInventory();
@@ -38,8 +35,8 @@ public class CookingStation extends Station {
         }
 
         // Skenario 2: Menaruh alat masak ke kompor (Place Utensil)
-        if (itemHand instanceof Utensils && utensilsOnStation == null) {
-            placeUtensils((Utensils) itemHand);
+        if (itemHand instanceof KitchenUtensil && utensilsOnStation == null) {
+            placeUtensils((KitchenUtensil) itemHand);
             chef.setInventory(null);
             
             System.out.println("[DEBUG] Menaruh " + utensilsOnStation.getName() + " di kompor.");
@@ -57,38 +54,40 @@ public class CookingStation extends Station {
      */
     private void processAddingIngredient(Chef chef, Item ingredient) {
         // Validasi: Pastikan panci kosong sebelum memasak
-        if (utensilsOnStation.getContent() != null) {
+        if (utensilsOnStation.getContents() != null && !utensilsOnStation.getContents().isEmpty()) {
             System.out.println("[FAIL] Alat masak sudah terisi!");
             return;
         }
 
         // Validasi: Item yang dimasukkan bukan alat masak lain
-        if (ingredient instanceof Utensils) {
+        if (ingredient instanceof KitchenUtensil) {
             System.out.println("[FAIL] Tidak bisa menumpuk alat masak!");
             return;
         }
 
         // Proses memasukkan bahan
-        utensilsOnStation.addIngredient(ingredient);
+        // TODO: Implement addIngredient method in KitchenUtensil or use setContents
+        // utensilsOnStation.addIngredient(ingredient);
         chef.setInventory(null); 
         
         System.out.println("[ACTION] Memasukkan " + ingredient.getName() + " ke dalam " + utensilsOnStation.getName());
 
         // Pemicu Concurrency: Menjalankan thread memasak di background
-        utensilsOnStation.startCooking();
+        // TODO: Implement startCooking method in KitchenUtensil
+        // utensilsOnStation.startCooking();
     }
 
     /**
      * Mengambil referensi alat masak yang ada di station.
      */
-    public Utensils getUtensils() {
+    public KitchenUtensil getUtensils() {
         return utensilsOnStation;
     }
 
     /**
      * Menempatkan alat masak baru di station.
      */
-    public void placeUtensils(Utensils utensils) {
+    public void placeUtensils(KitchenUtensil utensils) {
         this.utensilsOnStation = utensils;
     }
 }

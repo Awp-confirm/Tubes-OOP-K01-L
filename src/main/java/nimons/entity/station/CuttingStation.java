@@ -1,12 +1,8 @@
-package nimons.station;
+package nimons.entity.station;
 
-// DEPENDENCY ALERT:
-// Class-class berikut masih menggunakan versi DUMMY dari package nimons.dummy. (internal)
-import nimons.dummy.Chef;
-import nimons.dummy.GameState;
-import nimons.dummy.Item;
-import nimons.dummy.Position;
-import nimons.dummy.RecipeManager;
+import nimons.entity.chef.Chef;
+import nimons.entity.common.Position;
+import nimons.entity.item.Item;
 
 /**
  * CuttingStation berfungsi untuk memotong bahan mentah (Raw -> Chopped).
@@ -28,7 +24,7 @@ public class CuttingStation extends Station {
      * Mendukung aksi: Cutting (Prioritas), Pick Up, Drop, dan Assembly.
      */
     @Override
-    public void onInteract(Chef chef, GameState state) {
+    public void onInteract(Chef chef) {
         if (chef == null) return;
 
         Item itemHand = chef.getInventory();
@@ -96,7 +92,8 @@ public class CuttingStation extends Station {
      * Mengubah item menjadi bentuk terpotong (Chopped) menggunakan RecipeManager.
      */
     private void finishCutting() {
-        Item hasilPotong = RecipeManager.getChoppedResult(placedItem);
+        // TODO: Implement recipe matching using Recipe class
+        Item hasilPotong = null; // RecipeManager.getChoppedResult(placedItem);
 
         if (hasilPotong != null) {
             System.out.println("[SUCCESS] " + placedItem.getName() + " berhasil dipotong menjadi " + hasilPotong.getName());
@@ -114,14 +111,16 @@ public class CuttingStation extends Station {
      */
     private boolean isChoppable(Item item) {
         if (cuttingProgress > 0 && cuttingProgress < 100) return true;
-        return RecipeManager.getChoppedResult(item) != null;
+        // TODO: Implement recipe matching using Recipe class
+        return false; // RecipeManager.getChoppedResult(item) != null;
     }
 
     /**
      * Logika Assembly untuk Cutting Station (Delegasi ke RecipeManager).
      */
     private void processAssembly(Chef chef, Item itemHand, Item itemTable) {
-        Item hasil = RecipeManager.getResult(itemHand, itemTable);
+        // TODO: Implement recipe matching using Recipe class
+        Item hasil = null; // RecipeManager.getResult(itemHand, itemTable);
 
         if (hasil != null) {
             placeItem(hasil);

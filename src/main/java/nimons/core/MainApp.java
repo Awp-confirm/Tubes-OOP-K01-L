@@ -1,4 +1,4 @@
-package nimons;
+package nimons.core;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
