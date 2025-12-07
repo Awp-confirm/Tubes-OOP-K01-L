@@ -3,34 +3,34 @@ package nimons.entity.item.ingredient;
 import nimons.entity.item.Ingredient;
 import nimons.entity.item.IngredientState;
 
-public class Nori extends Ingredient {
+public class Fish extends Ingredient {
 
-    public Nori() {
-        super("nori", "Nori", IngredientState.RAW);
+    public Fish() {
+        super("fish", "Fish", IngredientState.RAW);
     }
 
     @Override
     public boolean canBeChopped() {
-        return false; // Nori tidak perlu dipotong
+        return false; // Fish tidak perlu dipotong untuk sushi
     }
 
     @Override
     public boolean canBeCooked() {
-        return false; // Nori tidak perlu dimasak
+        return false; // Fish untuk sushi dimakan mentah
     }
 
     @Override
     public boolean canBePlacedOnPlate() {
-        return true; // Nori bisa langsung diletakkan di plate
+        return getState() == IngredientState.RAW;
     }
 
     @Override
     public void chop() {
-        // Nori tidak bisa dipotong
+        // Fish tidak bisa dipotong
     }
 
     @Override
     public void cook() {
-        // Nori tidak bisa dimasak
+        // Fish tidak bisa dimasak (untuk sushi)
     }
 }

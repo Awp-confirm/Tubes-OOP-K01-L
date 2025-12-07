@@ -17,26 +17,41 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
     }
 
     // getters & setters
-    public int capacity() { return capacity; }
+    @Override
+    public int capacity() { 
+        return capacity; 
+    }
 
     public void setCapacity(int capacity) { 
         this.capacity = capacity; 
     }
 
     // interface methods
-    @Override public boolean isPortable() { 
+    @Override 
+    public boolean isPortable() { 
         return super.isPortable(); 
     }
 
-    @Override public boolean canAccept(Preparable ingredient) { 
-        return false; 
+    @Override 
+    public boolean canAccept(Preparable ingredient) { 
+        // Boiling pot bisa menerima ingredient jika belum penuh dan ingredient bisa dimasak
+        return getContents().size() < capacity && ingredient.canBeCooked();
     }
 
-    @Override public void addIngredient(Preparable ingredient) {
-        
+    @Override 
+    public void addIngredient(Preparable ingredient) {
+        if (canAccept(ingredient)) {
+            getContents().add(ingredient);
+        }
     }
 
-    @Override public void startCooking() {
-
+    @Override 
+    public void startCooking() {
+        // Masak semua ingredient dalam pot
+        for (Preparable ingredient : getContents()) {
+            if (ingredient.canBeCooked()) {
+                ingredient.cook();
+            }
+        }
     }
 }
