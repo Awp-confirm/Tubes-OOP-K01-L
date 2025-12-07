@@ -4,77 +4,91 @@ import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate;
-
-import java.util.Stack; // Syarat Teknis: Collections
+import java.util.Stack;
 
 /**
- * PlateStorageStation berfungsi menampung piring bersih dan kotor.
- * Menggunakan struktur data Stack (Tumpukan).
+ * PlateStorageStation (P) menangani tumpukan Plate bersih dan kotor (Stack LIFO).
+ * Logic utama adalah manajemen stack dan restriksi pengambilan Plate bersih.
  */
 public class PlateStorageStation extends Station {
 
-    private Stack<Plate> plateStack;
+    private Stack<Plate> plates; // Tumpukan piring
 
     public PlateStorageStation(String name, Position position) {
         super(name, position);
-        this.plateStack = new Stack<>();
-        initializePlates();
+        this.plates = new Stack<>();
+        
+        // Isi stok awal piring (5 piring bersih)
+        for (int i = 0; i < 5; i++) {
+            plates.push(new Plate()); // Plate default bersih
+        }
+        log("INFO", "Stok awal: 5 Piring bersih tersedia.");
     }
 
     /**
-     * Mengisi tumpukan awal dengan piring bersih.
-     * Jumlah piring bisa disesuaikan (misal 5 piring).
+     * Menangani interaksi Chef (Mengambil Piring).
      */
-    private void initializePlates() {
-        for (int i = 0; i < 5; i++) {
-            // ID Dummy, Clean = true, Dish = null
-            plateStack.push(new Plate("P-" + i, true, null));
-        }
-    }
-
     @Override
     public void onInteract(Chef chef) {
         if (chef == null) return;
-
         Item itemHand = chef.getInventory();
 
-        // 1. DROP (Menaruh Item) - DILARANG
-        // Spesifikasi: "Tidak dapat melakukan drop item apapun pada station ini"
-        if (itemHand != null) {
-            System.out.println("[FAIL] Tidak bisa menaruh barang di Plate Storage.");
+        // SCENARIO 1: AMBIL PIRING (Hand: Kosong)
+        if (itemHand == null) {
+            if (plates.isEmpty()) {
+                log("FAIL", "Piring habis!");
+                return;
+            }
+
+            // Cek piring paling atas TANPA mengambilnya
+            Plate topPlate = plates.peek();
+
+            if (topPlate.isClean()) {
+                // KONDISI A: Piring bersih di atas (Aman diambil)
+                chef.setInventory(plates.pop());
+                log("ACTION", "Mengambil Piring Bersih. Sisa: " + plates.size());
+            } else {
+                // KONDISI B: Piring kotor di atas (RESTRIKSI GDD)
+                // Chef dipaksa mengambil piring kotor itu untuk dicuci.
+                chef.setInventory(plates.pop());
+                log("ACTION", "Mengambil Piring Kotor untuk dicuci.");
+            }
             return;
         }
 
-        // 2. PICK UP (Mengambil Piring)
-        // Syarat: Chef tangan kosong & Tumpukan tidak kosong
-        if (itemHand == null && !plateStack.isEmpty()) {
-            // Ambil piring teratas (bisa bersih, bisa kotor tergantung tumpukan)
-            Plate topPlate = plateStack.pop();
-            
-            chef.setInventory(topPlate);
-            
-            String status = topPlate.isClean() ? "Bersih" : "Kotor";
-            System.out.println("[DEBUG] Mengambil Piring (" + status + "). Sisa: " + plateStack.size());
-        } else {
-            System.out.println("[INFO] Storage kosong.");
+        // SCENARIO 2: MENARUH PIRING (Drop Manual)
+        // Seharusnya Chef tidak bisa drop di PlateStorage, tapi pertahankan logika addPlate.
+        if (itemHand instanceof Plate) {
+            addReturnedPlate((Plate) itemHand);
+            chef.setInventory(null);
+            log("INFO", "Piring ditaruh manual ke tumpukan.");
+            return;
         }
+        
+        log("INFO", "Tangan penuh, tidak bisa berinteraksi.");
     }
 
     /**
-     * Method khusus untuk menerima piring kotor dari ServingStation.
-     * Piring kotor akan ditaruh di posisi paling atas (Top of Stack).
+     * Digunakan oleh ServingStation/WashingStation untuk mengembalikan piring ke tumpukan.
+     * Piring yang dikembalikan masuk paling atas (LIFO).
      */
-    public void addDirtyPlate(Plate plate) {
-        if (plate != null) {
-            plate.setClean(false); // Pastikan statusnya kotor
-            plate.setDish(null);   // Pastikan makanannya sudah hilang/dimakan
-            
-            plateStack.push(plate);
-            System.out.println("[INFO] Piring kotor dikembalikan ke storage.");
+    public void addReturnedPlate(Plate p) {
+        if (p != null) {
+            // Piring kotor (dari Serving) atau bersih (dari Washing) selalu masuk paling atas.
+            plates.push(p);
         }
     }
-
+    
+    // Method khusus untuk Serving Station (Karena ada delay 10 detik, kita beri nama spesifik)
+    public void addDirtyPlate(Plate p) {
+        addReturnedPlate(p);
+        log("INFO", "Piring kotor dikembalikan ke tumpukan.");
+    }
+    
+    /**
+     * Helper untuk debug (Digunakan oleh ServingStation).
+     */
     public int getPlateCount() {
-        return plateStack.size();
+        return plates.size();
     }
 }

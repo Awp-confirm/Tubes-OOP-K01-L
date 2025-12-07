@@ -4,12 +4,11 @@ import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
 import nimons.entity.item.KitchenUtensil;
-import nimons.entity.item.Plate;
+import nimons.entity.item.interfaces.CookingDevice;
 
 /**
- * TrashStation berfungsi untuk membuang bahan atau makanan yang gagal/tidak diinginkan.
- * - Jika membawa bahan/makanan: Item hilang.
- * - Jika membawa alat masak/piring: Hanya isinya yang hilang.
+ * TrashStation (T) menangani pembuangan Item dan pembersihan Kitchen Utensil.
+ * Logic utama: Menghapus item dari inventory Chef atau mereset Utensil.
  */
 public class TrashStation extends Station {
 
@@ -17,46 +16,41 @@ public class TrashStation extends Station {
         super(name, position);
     }
 
+    /**
+     * Menangani interaksi Chef (Membuang Item/Membersihkan Utensil).
+     */
     @Override
     public void onInteract(Chef chef) {
         if (chef == null) return;
-
         Item itemHand = chef.getInventory();
 
-        // Jika tangan kosong, tidak ada yang bisa dibuang
-        if (itemHand == null) {
-            System.out.println("[INFO] Tidak ada item untuk dibuang.");
-            return;
-        }
-
-        // KASUS 1: Membawa Piring (Plate)
-        if (itemHand instanceof Plate) {
-            Plate plate = (Plate) itemHand;
-            if (plate.getDish() != null) {
-                System.out.println("[ACTION] Membuang makanan " + plate.getDish().getName() + " dari piring.");
-                plate.setDish(null); // Hapus makanannya
-                plate.setClean(false); // Piring jadi kotor (kena sisa makanan)
-            } else {
-                System.out.println("[INFO] Piring sudah kosong.");
+        // Hanya beraksi jika Chef memegang Item
+        if (itemHand != null) {
+            
+            // Scenario 1: Utensil (Panci, Wajan)
+            if (itemHand instanceof KitchenUtensil) {
+                KitchenUtensil panci = (KitchenUtensil) itemHand;
+                
+                if (!panci.getContents().isEmpty()) {
+                    panci.getContents().clear(); // Hapus semua isi (bahan/dish)
+                    
+                    // Reset Status Masak (misal, mematikan timer)
+                    if (panci instanceof CookingDevice) {
+                        ((CookingDevice) panci).reset();
+                    }
+                    log("SUCCESS", "Isi " + panci.getName() + " dibuang dan di-reset.");
+                } else {
+                    log("INFO", panci.getName() + " sudah bersih.");
+                }
+                return; // Utensil tetap di tangan Chef setelah dibersihkan
             }
-            return;
-        }
 
-        // KASUS 2: Membawa Alat Masak (Panci/Wajan/Oven)
-        if (itemHand instanceof KitchenUtensil) {
-            KitchenUtensil utensil = (KitchenUtensil) itemHand;
-            if (utensil.getContents() != null && !utensil.getContents().isEmpty()) {
-                System.out.println("[ACTION] Mengosongkan isi " + utensil.getName());
-                utensil.setContents(null); // Kosongkan isi panci
-            } else {
-                System.out.println("[INFO] " + utensil.getName() + " sudah kosong.");
-            }
-            return;
+            // Scenario 2: Item Biasa (Ingredient, Dish, Plate Kosong)
+            String itemName = itemHand.getName();
+            chef.setInventory(null);
+            log("SUCCESS", "Item " + itemName + " dibuang.");
+        } else {
+            log("INFO", "Tidak ada item di tangan untuk dibuang.");
         }
-
-        // KASUS 3: Membawa Bahan/Masakan (Ingredient/Dish) tanpa wadah
-        // Langsung buang itemnya dari tangan Chef
-        System.out.println("[ACTION] Membuang " + itemHand.getName() + " ke tempat sampah.");
-        chef.setInventory(null);
     }
 }
