@@ -3,143 +3,113 @@ package nimons.entity.station;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
+import nimons.entity.item.Plate;
+import nimons.entity.item.interfaces.Preparable;
+import nimons.entity.item.IngredientState; // Import yang benar
 
 /**
- * CuttingStation berfungsi untuk memotong bahan mentah (Raw -> Chopped).
- * Station ini juga memiliki kemampuan Assembly (merakit) dan menaruh barang.
+ * CuttingStation (C) menangani pemotongan bahan (RAW -> CHOPPED).
+ * Berfungsi ganda sebagai Assembly/Holding Station.
  */
 public class CuttingStation extends Station {
 
-    private Item placedItem;
-    private int cuttingProgress; // Menyimpan progress potong (0 - 100)
+    private Item placedItem; // Bahan yang ada di atas meja
+    private float currentProgress = 0;
+    private final float REQUIRED_TIME = 3000; // Durasi Potong: 3 Detik
+    private Chef currentCutter; // Referensi Chef yang sedang memotong (untuk Busy State)
 
     public CuttingStation(String name, Position position) {
         super(name, position);
-        this.placedItem = null;
-        this.cuttingProgress = 0;
     }
 
     /**
-     * Mengatur interaksi Chef dengan Cutting Station.
-     * Mendukung aksi: Cutting (Prioritas), Pick Up, Drop, dan Assembly.
+     * Menangani progress timer pemotongan.
+     */
+    @Override
+    public void update(long deltaTime) {
+        // Logic Timer Berjalan: Hanya jika ada Chef yang berinteraksi dan barangnya Preparable.
+        if (currentCutter != null && placedItem instanceof Preparable) {
+            currentProgress += deltaTime;
+
+            if (currentProgress >= REQUIRED_TIME) {
+                // 1. Ubah state bahan (RAW -> CHOPPED)
+                ((Preparable) placedItem).chop();
+                
+                // 2. Lepaskan Chef (Un-freeze)
+                currentCutter.setBusy(false);
+                currentCutter = null;
+                currentProgress = 0; // Reset progress
+                
+                log("SUCCESS", "Item selesai dipotong: " + placedItem.getName());
+            }
+        }
+    }
+
+    /**
+     * Menangani interaksi Chef (Plating, Drop, Cut, Pick Up).
      */
     @Override
     public void onInteract(Chef chef) {
         if (chef == null) return;
-
         Item itemHand = chef.getInventory();
-        Item itemTable = this.placedItem;
 
-        // 1. CUTTING: Prioritas utama jika tangan kosong, ada bahan, dan bahan bisa dipotong
-        if (itemHand == null && itemTable != null && isChoppable(itemTable)) {
-            processCutting(chef);
+        // SCENARIO 1: PLATING (Meja Potong sebagai Assembly Station)
+        // Hand: Plate, Table: Item
+        if (itemHand instanceof Plate && placedItem != null) {
+            processPlating((Plate) itemHand, placedItem);
+            // Jika plating sukses (piring ada isinya), hapus item dari meja
+            if (((Plate)itemHand).getFood() != null) placedItem = null;
             return;
         }
 
-        // 2. PICK UP: Ambil item (Reset progress jika barang diambil setengah jalan)
-        if (itemHand == null && itemTable != null) {
-            chef.setInventory(itemTable);
-            
-            // Kosongkan meja dan reset progress
-            placeItem(null);
-            this.cuttingProgress = 0;
-            
-            System.out.println("[DEBUG] " + name + ": Chef mengambil " + chef.getInventory().getName());
-            return;
-        }
-
-        // 3. DROP: Taruh item ke meja (Reset progress untuk barang baru)
-        if (itemHand != null && itemTable == null) {
-            placeItem(itemHand);
+        // SCENARIO 2: TARUH ITEM (Drop)
+        // Hand: Item, Table: Empty
+        if (itemHand != null && placedItem == null) {
+            log("ACTION", "Menaruh " + itemHand.getName());
+            placedItem = itemHand;
             chef.setInventory(null);
-            this.cuttingProgress = 0;
-            
-            System.out.println("[DEBUG] " + name + ": Chef menaruh " + this.placedItem.getName());
+            currentProgress = 0; // Reset progress untuk item baru
             return;
-        }
-
-        // 4. ASSEMBLY: Gabungkan bahan jika tangan dan meja terisi
-        if (itemHand != null && itemTable != null) {
-            processAssembly(chef, itemHand, itemTable);
-        }
-    }
-
-    /**
-     * Logika memotong dengan simulasi Progress Bar & Busy State menggunakan Thread Sleep.
-     */
-    private void processCutting(Chef chef) {
-        System.out.println("[ACTION] Chef mulai memotong " + placedItem.getName() + "...");
-        
-        try {
-            // Loop simulasi progres: Bertambah 20% setiap iterasi (0.5 detik)
-            while (cuttingProgress < 100) {
-                Thread.sleep(500); // Simulasi waktu kerja (Busy State)
-                cuttingProgress += 20;
-                System.out.println(">> Cutting Progress: " + cuttingProgress + "%");
-            }
-
-            // Jika progress mencapai 100%, ubah item menjadi Chopped
-            if (cuttingProgress >= 100) {
-                finishCutting();
-            }
-
-        } catch (InterruptedException e) {
-            System.out.println("[ERROR] Proses memotong terganggu!");
-        }
-    }
-
-    /**
-     * Mengubah item menjadi bentuk terpotong (Chopped) menggunakan RecipeManager.
-     */
-    private void finishCutting() {
-        // TODO: Implement recipe matching using Recipe class
-        Item hasilPotong = null; // RecipeManager.getChoppedResult(placedItem);
-
-        if (hasilPotong != null) {
-            System.out.println("[SUCCESS] " + placedItem.getName() + " berhasil dipotong menjadi " + hasilPotong.getName());
-            placeItem(hasilPotong); // Update item di meja
-        } else {
-            System.out.println("[ERROR] Gagal memotong item (Resep tidak ditemukan).");
         }
         
-        this.cuttingProgress = 0; // Reset progress setelah selesai
-    }
-
-    /**
-     * Cek apakah item valid untuk dipotong (menggunakan RecipeManager).
-     * Juga mengembalikan true jika proses potong sedang berlangsung (progress > 0).
-     */
-    private boolean isChoppable(Item item) {
-        if (cuttingProgress > 0 && cuttingProgress < 100) return true;
-        // TODO: Implement recipe matching using Recipe class
-        return false; // RecipeManager.getChoppedResult(item) != null;
-    }
-
-    /**
-     * Logika Assembly untuk Cutting Station (Delegasi ke RecipeManager).
-     */
-    private void processAssembly(Chef chef, Item itemHand, Item itemTable) {
-        // TODO: Implement recipe matching using Recipe class
-        Item hasil = null; // RecipeManager.getResult(itemHand, itemTable);
-
-        if (hasil != null) {
-            placeItem(hasil);
-            chef.setInventory(null);
-            this.cuttingProgress = 0; // Reset progress jika terjadi assembly
-            System.out.println("[SUCCESS] Assembly di Cutting Board Berhasil: " + hasil.getName());
-        } else {
-            System.out.println("[FAIL] Tidak bisa menggabungkan bahan di Cutting Station.");
+        // SCENARIO 3: AKSI MEMOTONG (Chop) - PRIORITAS TINGGI
+        // Syarat: Tangan kosong, Item ada, dan Item masih RAW
+        if (itemHand == null && placedItem instanceof Preparable) {
+            Preparable p = (Preparable) placedItem;
+            
+            // Validasi: Hanya boleh memotong bahan mentah (RAW)
+            if (p.getState() == IngredientState.RAW) {
+                // START CUTTING / RESUME
+                this.currentCutter = chef;
+                chef.setBusy(true); // BEKUKAN CHEF (Busy State)
+                log("ACTION", "Mulai memotong...");
+                return; // Keluar dari method agar tidak langsung Pick Up
+            } else {
+                // Jika sudah Cooked/Chopped, Chef tidak melakukan apa-apa (akan jatuh ke Pick Up)
+                log("INFO", "Item ini tidak perlu dipotong.");
+            }
+        }
+        
+        // SCENARIO 4: AMBIL ITEM (Pick Up) - PRIORITAS RENDAH
+        // Syarat: Tangan kosong, Meja ada barang, TIDAK SEDANG MEMOTONG
+        if (itemHand == null && placedItem != null && currentCutter == null) {
+            log("ACTION", "Mengambil " + placedItem.getName());
+            chef.setInventory(placedItem);
+            placedItem = null;
+            return;
+        }
+        
+        // SCENARIO 5: BATALKAN/PAUSE (Safety)
+        // Jika Chef sedang busy karena memotong dan berinteraksi lagi (Spasi)
+        if (chef.isBusy() && chef == currentCutter) {
+            chef.setBusy(false);
+            currentCutter = null;
+            log("INFO", "Berhenti memotong (Progress tersimpan).");
         }
     }
-
-    public Item getPlacedItem() {
-        return placedItem;
-    }
-
+    
     /**
-     * Menempatkan item di atas Cutting Station.
+     * Getter untuk item yang diletakkan di atas Cutting Station (Keperluan GUI).
      */
-    public void placeItem(Item item) {
-        this.placedItem = item;
-    }
+    public Item getPlacedItem() { return placedItem; }
 }

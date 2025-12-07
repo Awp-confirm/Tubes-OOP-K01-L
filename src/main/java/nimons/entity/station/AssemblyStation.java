@@ -3,88 +3,99 @@ package nimons.entity.station;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
+import nimons.entity.item.Plate;
+import nimons.entity.item.Dish;
+import nimons.entity.item.KitchenUtensil;
+import nimons.logic.recipe.RecipeManager;
 
 /**
- * AssemblyStation berfungsi sebagai tempat menaruh bahan (Drop)
- * dan menggabungkan dua bahan menjadi hidangan baru (Assembly).
+ * AssemblyStation (A) atau Counter menangani perakitan hidangan,
+ * berfungsi sebagai meja kerja untuk Plating, Pick Up, Drop, dan Kombinasi Resep.
  */
 public class AssemblyStation extends Station {
 
-    private Item placedItem; // Item yang sedang diletakkan di meja
+    private Item placedItem; // Item yang diletakkan di permukaan Assembly Station
 
     public AssemblyStation(String name, Position position) {
         super(name, position);
-        this.placedItem = null;
     }
 
     /**
-     * Mengatur interaksi Chef dengan Assembly Station.
-     * Mendukung aksi: Pick Up, Drop, dan Merge/Assembly.
+     * Menangani interaksi Chef (Menaruh, Mengambil, Plating, atau Merakit).
      */
     @Override
     public void onInteract(Chef chef) {
         if (chef == null) return;
-
         Item itemHand = chef.getInventory();
         Item itemTable = this.placedItem;
 
-        // 1. PICK UP: Ambil item dari meja jika tangan Chef kosong
+        // SCENARIO 1: PLATING DARI UTENSIL KE PIRING (Hand: Plate, Table: Utensil)
+        if (itemHand instanceof Plate && itemTable instanceof KitchenUtensil) {
+            KitchenUtensil panci = (KitchenUtensil) itemTable;
+            
+            if (!panci.getContents().isEmpty()) {
+                Item isi = (Item) panci.getContents().iterator().next();
+                
+                // Menggunakan Helper Plating (Wrapper Ingredient -> Dish)
+                processPlating((Plate) itemHand, isi);
+                
+                // Jika sukses masuk piring, kosongkan wadah masakan
+                if (((Plate)itemHand).getFood() != null) {
+                    panci.getContents().clear();
+                    log("INFO", "Isi Utensil dikosongkan setelah plating.");
+                }
+            } else {
+                log("INFO", "Panci kosong.");
+            }
+            return;
+        }
+
+        // SCENARIO 2: PICK UP ITEM (Hand: Empty, Table: Item)
         if (itemHand == null && itemTable != null) {
+            log("ACTION", "Mengambil " + itemTable.getName());
             chef.setInventory(itemTable);
-            
-            // Kosongkan meja
-            placeItem(null); 
-            
-            System.out.println("[DEBUG] " + name + ": Chef mengambil " + chef.getInventory().getName());
+            this.placedItem = null;
             return;
         }
 
-        // 2. DROP: Taruh item ke meja jika meja kosong
+        // SCENARIO 3: DROP ITEM (Hand: Item, Table: Empty)
         if (itemHand != null && itemTable == null) {
-            placeItem(itemHand);
+            log("ACTION", "Menaruh " + itemHand.getName());
+            this.placedItem = itemHand;
             chef.setInventory(null);
-            
-            System.out.println("[DEBUG] " + name + ": Chef menaruh " + this.placedItem.getName());
             return;
         }
 
-        // 3. ASSEMBLY: Lakukan penggabungan jika tangan dan meja sama-sama berisi item
-        if (itemHand != null && itemTable != null) {
-            processAssembly(chef, itemHand, itemTable);
+        // SCENARIO 4: ASSEMBLY / KOMBINASI RESEP (Hand: Item, Table: Plate)
+        if (itemHand != null && itemTable instanceof Plate) {
+            Plate piring = (Plate) itemTable;
+            Item isiPiring = piring.getFood();
+
+            // 4a. Plating Manual Pertama (Piring di meja kosong)
+            if (isiPiring == null) {
+                processPlating(piring, itemHand);
+                // Jika plating berhasil, item di tangan Chef akan kosong
+                if (piring.getFood() != null) chef.setInventory(null); 
+                return;
+            }
+
+            // 4b. Kombinasi Lanjutan (Piring sudah ada isinya)
+            Dish hasil = RecipeManager.findMatch(itemHand, isiPiring);
+            
+            if (hasil != null) {
+                piring.setFood(hasil);
+                chef.setInventory(null); 
+                log("SUCCESS", "Assembly Berhasil: " + hasil.getName());
+            } else {
+                // Gagal Assembly: Tidak ada resep named
+                log("FAIL", "Resep tidak cocok (" + itemHand.getName() + " + " + isiPiring.getName() + ")");
+                // Catatan: Item di tangan Chef TIDAK hilang agar Chef bisa membuangnya.
+            }
         }
     }
 
     /**
-     * Logika penggabungan item menggunakan RecipeManager.
-     * Jika sukses, item di meja berubah dan item di tangan hilang.
+     * Getter untuk item yang diletakkan di atas Assembly Station (Keperluan GUI).
      */
-    private void processAssembly(Chef chef, Item itemHand, Item itemTable) {
-        // Logika pencocokan resep ke Recipe
-        // TODO: Implement recipe matching using Recipe class
-        Item hasil = null; // RecipeManager.getResult(itemHand, itemTable);
-
-        if (hasil != null) {
-            // Berhasil: Update item meja menjadi hasil masakan
-            placeItem(hasil);
-            
-            // Kosongkan tangan chef
-            chef.setInventory(null);
-            
-            System.out.println("[SUCCESS] Assembly Berhasil: " + hasil.getName());
-        } else {
-            // Gagal: Resep tidak cocok
-            System.out.println("[FAIL] Resep tidak valid: " + itemHand.getName() + " + " + itemTable.getName());
-        }
-    }
-
-    public Item getPlacedItem() {
-        return placedItem;
-    }
-
-    /**
-     * Menempatkan item di atas station.
-     */
-    public void placeItem(Item item) {
-        this.placedItem = item;
-    }
+    public Item getPlacedItem() { return placedItem; }
 }
