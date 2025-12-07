@@ -4,7 +4,7 @@ plugins {
 }
 
 application {
-    mainClass = 'nimons.MainApp'
+    mainClass = 'nimons.core.MainApp'
 }
 
 javafx {
