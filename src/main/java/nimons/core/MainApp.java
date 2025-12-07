@@ -3,6 +3,7 @@ package nimons.core;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import nimons.gui.MainMenuScene;
 
 public class MainApp extends Application {
 
