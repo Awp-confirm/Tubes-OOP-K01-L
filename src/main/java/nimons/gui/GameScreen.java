@@ -41,7 +41,9 @@ public class GameScreen {
     private TileManager tileManager;
     private List<Position> spawnPositions;
     private AnimationTimer gameLoop;
-    private Chef playerChef;
+    private Chef playerChef;  // Chef pertama
+    private Chef chef2;        // Chef kedua
+    private Chef activeChef;   // Chef yang sedang dikontrol
     
     // Smooth movement
     private double chefRenderX = 0;
@@ -183,24 +185,51 @@ public class GameScreen {
             System.out.println("Tile size: " + tileSize);
             System.out.println("Spawn positions: " + spawnPositions.size());
             
-            // Create chef at spawn position
+            // Create 2 chefs at different spawn positions
             if (!spawnPositions.isEmpty()) {
-                Position spawnPos = spawnPositions.get(0);
-                playerChef = new Chef("player1", "Chef", spawnPos, Direction.DOWN);
+                // Chef 1
+                Position spawnPos1 = spawnPositions.get(0);
+                playerChef = new Chef("player1", "Chef 1", spawnPos1, Direction.DOWN);
                 
-                // Initialize smooth position
-                chefRenderX = spawnPos.getX();
-                chefRenderY = spawnPos.getY();
-                chefTargetX = spawnPos.getX();
-                chefTargetY = spawnPos.getY();
-                
-                // Place chef on tile
-                Tile spawnTile = tileManager.getTileAt(spawnPos);
-                if (spawnTile != null) {
-                    spawnTile.setChefOnTile(playerChef);
+                // Place chef 1 on tile
+                Tile spawnTile1 = tileManager.getTileAt(spawnPos1);
+                if (spawnTile1 != null) {
+                    spawnTile1.setChefOnTile(playerChef);
                 }
                 
-                System.out.println("Chef spawned at: (" + spawnPos.getX() + ", " + spawnPos.getY() + ")");
+                System.out.println("Chef 1 spawned at: (" + spawnPos1.getX() + ", " + spawnPos1.getY() + ")");
+                
+                // Chef 2 - gunakan spawn position kedua jika ada, atau posisi sebelah chef 1
+                Position spawnPos2;
+                if (spawnPositions.size() > 1) {
+                    spawnPos2 = spawnPositions.get(1);
+                } else {
+                    // Spawn di sebelah chef 1 jika hanya ada 1 spawn point
+                    spawnPos2 = new Position(spawnPos1.getX() + 1, spawnPos1.getY());
+                    // Validasi posisi
+                    if (!tileManager.isInBounds(spawnPos2) || !tileManager.isWalkable(spawnPos2)) {
+                        spawnPos2 = new Position(spawnPos1.getX(), spawnPos1.getY() + 1);
+                    }
+                }
+                
+                chef2 = new Chef("player2", "Chef 2", spawnPos2, Direction.DOWN);
+                
+                // Place chef 2 on tile
+                Tile spawnTile2 = tileManager.getTileAt(spawnPos2);
+                if (spawnTile2 != null) {
+                    spawnTile2.setChefOnTile(chef2);
+                }
+                
+                System.out.println("Chef 2 spawned at: (" + spawnPos2.getX() + ", " + spawnPos2.getY() + ")");
+                
+                // Set active chef (awalnya chef 1)
+                activeChef = playerChef;
+                
+                // Initialize smooth position untuk active chef
+                chefRenderX = spawnPos1.getX();
+                chefRenderY = spawnPos1.getY();
+                chefTargetX = spawnPos1.getX();
+                chefTargetY = spawnPos1.getY();
             }
         } catch (Exception e) {
             System.err.println("Failed to load map: " + stageId);
@@ -246,8 +275,8 @@ public class GameScreen {
         // Handle chef movement
         handleChefMovement(System.nanoTime());
         
-        // Smooth chef position interpolation
-        if (playerChef != null) {
+        // Smooth chef position interpolation (untuk active chef)
+        if (activeChef != null) {
             double dx = chefTargetX - chefRenderX;
             double dy = chefTargetY - chefRenderY;
             
@@ -351,43 +380,12 @@ public class GameScreen {
             }
         }
         
-        // Draw chef with smooth movement
-        if (playerChef != null && chefImage != null) {
-            double chefScreenX = offsetX + chefRenderX * tileSize;
-            double chefScreenY = offsetY + chefRenderY * tileSize;
-            
-            // Draw chef using image asset with smooth interpolation
-            gc.drawImage(chefImage, chefScreenX, chefScreenY, tileSize, tileSize);
-        } else if (playerChef != null) {
-            // Fallback: Draw chef as a circle if image not loaded
-            double chefScreenX = offsetX + chefRenderX * tileSize;
-            double chefScreenY = offsetY + chefRenderY * tileSize;
-            
-            gc.setFill(Color.web("#ff6b6b"));
-            double chefPadding = tileSize * 0.15;
-            gc.fillOval(chefScreenX + chefPadding, chefScreenY + chefPadding,
-                       tileSize - chefPadding * 2, tileSize - chefPadding * 2);
-            
-            // Draw direction indicator
-            gc.setFill(Color.WHITE);
-            double dirSize = tileSize * 0.15;
-            double centerX = chefScreenX + tileSize / 2;
-            double centerY = chefScreenY + tileSize / 2;
-            
-            switch (playerChef.getDirection()) {
-                case UP:
-                    gc.fillRect(centerX - dirSize / 2, centerY - tileSize * 0.3, dirSize, dirSize);
-                    break;
-                case DOWN:
-                    gc.fillRect(centerX - dirSize / 2, centerY + tileSize * 0.15, dirSize, dirSize);
-                    break;
-                case LEFT:
-                    gc.fillRect(centerX - tileSize * 0.3, centerY - dirSize / 2, dirSize, dirSize);
-                    break;
-                case RIGHT:
-                    gc.fillRect(centerX + tileSize * 0.15, centerY - dirSize / 2, dirSize, dirSize);
-                    break;
-            }
+        // Draw both chefs
+        if (playerChef != null) {
+            drawChef(playerChef, offsetX, offsetY, playerChef == activeChef);
+        }
+        if (chef2 != null) {
+            drawChef(chef2, offsetX, offsetY, chef2 == activeChef);
         }
         
         // Render pause menu jika game di-pause
@@ -474,6 +472,10 @@ public class GameScreen {
                 case ESCAPE:
                     togglePause();
                     break;
+                case K:
+                    // Switch chef
+                    switchChef();
+                    break;
                 default:
                     break;
             }
@@ -500,7 +502,7 @@ public class GameScreen {
     }
     
     private void handleChefMovement(long currentTime) {
-        if (playerChef == null || tileManager == null) {
+        if (activeChef == null || tileManager == null) {
             return;
         }
         
@@ -522,8 +524,8 @@ public class GameScreen {
         }
         
         if (newDirection != null) {
-            Position currentPos = playerChef.getPosition();
-            playerChef.setDirection(newDirection);
+            Position currentPos = activeChef.getPosition();
+            activeChef.setDirection(newDirection);
             
             // Calculate new position
             int newX = currentPos.getX();
@@ -554,8 +556,8 @@ public class GameScreen {
                     oldTile.setChefOnTile(null);
                 }
                 
-                // Move chef
-                playerChef.setPosition(newPos);
+                // Move active chef
+                activeChef.setPosition(newPos);
                 
                 // Update target position for smooth movement
                 chefTargetX = newPos.getX();
@@ -570,6 +572,101 @@ public class GameScreen {
                 lastMoveTime = currentTime;
             }
         }
+    }
+    
+    /**
+     * Method untuk menggambar chef di canvas
+     * @param chef Chef yang akan digambar
+     * @param offsetX Offset X untuk centering map
+     * @param offsetY Offset Y untuk centering map
+     * @param isActive Apakah chef ini sedang aktif (dikontrol)
+     */
+    private void drawChef(Chef chef, double offsetX, double offsetY, boolean isActive) {
+        if (chef == null) return;
+        
+        // Gunakan smooth position untuk active chef, atau posisi langsung untuk inactive chef
+        double drawX, drawY;
+        if (isActive) {
+            drawX = chefRenderX;
+            drawY = chefRenderY;
+        } else {
+            drawX = chef.getPosition().getX();
+            drawY = chef.getPosition().getY();
+        }
+        
+        double chefScreenX = offsetX + drawX * tileSize;
+        double chefScreenY = offsetY + drawY * tileSize;
+        
+        if (chefImage != null) {
+            // Draw chef image
+            gc.drawImage(chefImage, chefScreenX, chefScreenY, tileSize, tileSize);
+        } else {
+            // Fallback: Draw chef as a circle if image not loaded
+            gc.setFill(Color.web("#ff6b6b"));
+            double chefPadding = tileSize * 0.15;
+            gc.fillOval(chefScreenX + chefPadding, chefScreenY + chefPadding,
+                       tileSize - chefPadding * 2, tileSize - chefPadding * 2);
+            
+            // Draw direction indicator
+            gc.setFill(Color.WHITE);
+            double dirSize = tileSize * 0.15;
+            double centerX = chefScreenX + tileSize / 2;
+            double centerY = chefScreenY + tileSize / 2;
+            
+            switch (chef.getDirection()) {
+                case UP:
+                    gc.fillRect(centerX - dirSize / 2, centerY - tileSize * 0.3, dirSize, dirSize);
+                    break;
+                case DOWN:
+                    gc.fillRect(centerX - dirSize / 2, centerY + tileSize * 0.15, dirSize, dirSize);
+                    break;
+                case LEFT:
+                    gc.fillRect(centerX - tileSize * 0.3, centerY - dirSize / 2, dirSize, dirSize);
+                    break;
+                case RIGHT:
+                    gc.fillRect(centerX + tileSize * 0.15, centerY - dirSize / 2, dirSize, dirSize);
+                    break;
+            }
+        }
+        
+        // Draw chef name label
+        gc.setFill(Color.WHITE);
+        gc.setFont(javafx.scene.text.Font.font(tileSize * 0.2));
+        gc.fillText(chef.getName(), chefScreenX + tileSize * 0.1, chefScreenY - tileSize * 0.05);
+    }
+    
+    /**
+     * Method untuk switch antara chef 1 dan chef 2
+     * Dipanggil saat tombol K ditekan
+     */
+    private void switchChef() {
+        if (playerChef == null || chef2 == null) {
+            return;
+        }
+        
+        // Switch active chef
+        if (activeChef == playerChef) {
+            activeChef = chef2;
+            System.out.println("Switched to Chef 2");
+        } else {
+            activeChef = playerChef;
+            System.out.println("Switched to Chef 1");
+        }
+        
+        // Update target position untuk smooth transition
+        Position activePos = activeChef.getPosition();
+        chefTargetX = activePos.getX();
+        chefTargetY = activePos.getY();
+        
+        // Snap render position ke active chef
+        chefRenderX = activePos.getX();
+        chefRenderY = activePos.getY();
+        
+        // Reset movement flags
+        moveUp = false;
+        moveDown = false;
+        moveLeft = false;
+        moveRight = false;
     }
     
     private void togglePause() {
