@@ -80,8 +80,8 @@ public class ServingStation extends Station {
             Dish masakan = null; 
 
             // Cek apakah piring berisi Dish
-            if (piring.getFood() instanceof Dish) {
-                masakan = (Dish) piring.getFood();
+            if (piring.getDish() instanceof Dish) {
+                masakan = (Dish) piring.getDish();
             }
             
             // Validasi 1: Piring Kosong?
@@ -106,7 +106,7 @@ public class ServingStation extends Station {
             // --- LOGIKA PENGEMBALIAN PIRING KOTOR (DELAY) ---
             
             // 1. Bersihkan piring dan set status kotor
-            piring.setFood(null); 
+            piring.setDish(null); 
             piring.setClean(false); 
 
             // 2. Hapus dari tangan Chef

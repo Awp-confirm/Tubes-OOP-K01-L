@@ -53,4 +53,14 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
             }
         }
     }
+
+    @Override
+    public void update(float deltaTime) {
+        // Update cooking progress
+    }
+
+    @Override
+    public void reset() {
+        getContents().clear();
+    }
 }

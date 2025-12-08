@@ -45,7 +45,6 @@ public class Dish extends Item {
 
     public boolean isComplete() {
         // Dish dianggap complete jika memiliki minimal 1 component
-        // Logic ini bisa disesuaikan dengan requirement game
         return !components.isEmpty();
     }
 }

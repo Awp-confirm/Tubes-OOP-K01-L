@@ -1,13 +1,14 @@
 package nimons.entity.station;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Dish;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate;
 import nimons.entity.item.interfaces.Preparable;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Kelas abstrak dasar untuk semua Station di Nimonscooked.
@@ -55,7 +56,7 @@ public abstract class Station {
         if (itemToPlate == null) return;
 
         // 1. Cek Piring Penuh?
-        if (piring.getFood() != null) {
+        if (piring.getDish() != null) {
             log("FAIL", "Piring sudah penuh!");
             return;
         }
@@ -77,7 +78,7 @@ public abstract class Station {
         }
 
         // 3. Masukkan Dish ke Piring
-        piring.setFood(dishSiapSaji);
+        piring.setDish(dishSiapSaji);
         log("SUCCESS", "Plating " + dishSiapSaji.getName() + " berhasil.");
     }
 }
