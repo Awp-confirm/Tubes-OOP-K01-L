@@ -1,5 +1,6 @@
 package nimons.entity.item;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import nimons.entity.item.interfaces.CookingDevice;
@@ -9,7 +10,9 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
 
     private int capacity;
 
-    public FryingPan() {}
+    public FryingPan() {
+        this("frying_pan", 2, new HashSet<>());
+    }
 
     public FryingPan(String id, int capacity, Set<Preparable> contents) {
         super(id, "Frying Pan", true, contents);
@@ -20,6 +23,11 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     @Override
     public int capacity() { 
         return capacity; 
+    }
+    
+    @Override
+    public int getCapacity() {
+        return capacity;
     }
 
     public void setCapacity(int capacity) { 
@@ -34,12 +42,16 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     @Override 
     public boolean canAccept(Preparable ingredient) { 
         // Frying pan bisa menerima ingredient jika belum penuh dan ingredient bisa dimasak
-        return getContents().size() < capacity && ingredient.canBeCooked();
+        Set<Preparable> contents = getContents();
+        if (contents == null) {
+            return false;
+        }
+        return contents.size() < capacity && ingredient != null && ingredient.canBeCooked();
     }
 
     @Override 
     public void addIngredient(Preparable ingredient) {
-        if (canAccept(ingredient)) {
+        if (canAccept(ingredient) && getContents() != null) {
             getContents().add(ingredient);
         }
     }
@@ -47,20 +59,31 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     @Override 
     public void startCooking() {
         // Masak semua ingredient dalam frying pan
-        for (Preparable ingredient : getContents()) {
-            if (ingredient.canBeCooked()) {
-                ingredient.cook();
+        if (getContents() != null) {
+            for (Preparable ingredient : getContents()) {
+                if (ingredient.canBeCooked()) {
+                    ingredient.cook();
+                }
             }
         }
     }
 
     @Override
-    public void update(float deltaTime) {
-        // Update cooking progress
+    public void update(long deltaTime) {
+        // Update cooking progress for all ingredients
+        if (getContents() != null) {
+            for (Preparable ingredient : getContents()) {
+                if (ingredient.getState() == nimons.entity.item.IngredientState.COOKING) {
+                    // Continue cooking process
+                }
+            }
+        }
     }
 
     @Override
     public void reset() {
-        getContents().clear();
+        if (getContents() != null) {
+            getContents().clear();
+        }
     }
 }
