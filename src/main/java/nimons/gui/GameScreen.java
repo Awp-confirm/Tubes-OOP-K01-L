@@ -64,6 +64,9 @@ public class GameScreen {
     private long lastMoveTime = 0;
     private static final long MOVE_COOLDOWN = 150; // milliseconds
     
+    // Dash control
+    private boolean shiftPressed = false;
+    
     // Pause state
     private boolean isPaused = false;
     private long pauseStartTime = 0;
@@ -462,6 +465,10 @@ public class GameScreen {
                     // Switch chef
                     switchChef();
                     break;
+                case SHIFT:
+                    // Hold shift for dash
+                    shiftPressed = true;
+                    break;
                 default:
                     break;
             }
@@ -480,6 +487,9 @@ public class GameScreen {
                     break;
                 case D:
                     moveRight = false;
+                    break;
+                case SHIFT:
+                    shiftPressed = false;
                     break;
                 default:
                     break;
@@ -513,6 +523,40 @@ public class GameScreen {
             Position currentPos = activeChef.getPosition();
             activeChef.setDirection(newDirection);
             
+            // Check if SHIFT pressed for dash
+            if (shiftPressed && !activeChef.isDashOnCooldown(currentTime)) {
+                // Perform dash (2 tiles)
+                Position dashTarget = activeChef.dash(newDirection, currentTime);
+                
+                if (dashTarget != null && tileManager.isWalkable(dashTarget)) {
+                    // Remove chef from old tile
+                    Tile oldTile = tileManager.getTileAt(currentPos);
+                    if (oldTile != null) {
+                        oldTile.setChefOnTile(null);
+                    }
+                    
+                    // Move to dash target
+                    activeChef.setPosition(dashTarget);
+                    
+                    // Update target position for smooth movement
+                    chefTargetX = dashTarget.getX();
+                    chefTargetY = dashTarget.getY();
+                    
+                    // Add chef to new tile
+                    Tile newTile = tileManager.getTileAt(dashTarget);
+                    if (newTile != null) {
+                        newTile.setChefOnTile(activeChef);
+                    }
+                    
+                    activeChef.setDashing(false);
+                    lastMoveTime = currentTime;
+                    
+                    System.out.println("Chef dashed to: (" + dashTarget.getX() + ", " + dashTarget.getY() + ")");
+                    return; // Exit after dash
+                }
+            }
+            
+            // Normal movement (1 tile)
             // Calculate new position
             int newX = currentPos.getX();
             int newY = currentPos.getY();

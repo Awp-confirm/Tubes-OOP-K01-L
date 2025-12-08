@@ -12,14 +12,25 @@ public class Chef {
     private Item inventory;
     private ChefAction currentAction;
     private boolean busy;
+    
+    // Dash attributes
+    private boolean isDashing;
+    private long lastDashTime;
+    private static final long DASH_COOLDOWN = 1000; // 1 second cooldown
+    private static final int DASH_DISTANCE = 2; // Dash 2 tiles
 
-    public Chef() {}
+    public Chef() {
+        this.isDashing = false;
+        this.lastDashTime = 0;
+    }
 
     public Chef(String id, String name, Position position, Direction direction) {
         this.id = id;
         this.name = name;
         this.position = position;
         this.direction = direction;
+        this.isDashing = false;
+        this.lastDashTime = 0;
     }
 
     // getters & setters
@@ -74,9 +85,17 @@ public class Chef {
     public boolean isBusy() { 
         return busy; 
     }
-
+    
     public void setBusy(boolean busy) { 
         this.busy = busy; 
+    }
+    
+    public boolean isDashing() {
+        return isDashing;
+    }
+    
+    public void setDashing(boolean dashing) {
+        this.isDashing = dashing;
     }
 
     public void move(Direction direction) {
@@ -149,17 +168,81 @@ public class Chef {
         return droppedItem;
     }
 
-    public boolean isHolding(Class<? extends Item> itemClass) {
-        return inventory != null && itemClass.isInstance(inventory);
-    }
-
-    public Position getFacingPosition() {
-        return calculateNewPosition(direction);
-    }
-
     public void turn(Direction newDirection) {
         if (!busy) {
             this.direction = newDirection;
         }
+    }
+    
+    /**
+     * Dash ke arah yang dituju dengan jarak 2 tile
+     * Memiliki cooldown 1 detik
+     * 
+     * @param direction arah dash
+     * @param currentTime waktu saat ini (System.nanoTime())
+     * @return posisi target dash, atau null jika gagal
+     */
+    public Position dash(Direction direction, long currentTime) {
+        // Check cooldown
+        long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000; // Convert to ms
+        if (timeSinceLastDash < DASH_COOLDOWN) {
+            return null; // Still in cooldown
+        }
+        
+        // Cannot dash while busy
+        if (this.busy) {
+            return null;
+        }
+        
+        // Calculate dash target position (2 tiles away)
+        int targetX = position.getX();
+        int targetY = position.getY();
+        
+        switch (direction) {
+            case UP:
+                targetY -= DASH_DISTANCE;
+                break;
+            case DOWN:
+                targetY += DASH_DISTANCE;
+                break;
+            case LEFT:
+                targetX -= DASH_DISTANCE;
+                break;
+            case RIGHT:
+                targetX += DASH_DISTANCE;
+                break;
+        }
+        
+        Position targetPosition = new Position(targetX, targetY);
+        
+        // Set dashing state
+        this.isDashing = true;
+        this.direction = direction;
+        this.lastDashTime = currentTime;
+        
+        return targetPosition;
+    }
+    
+    /**
+     * Cek apakah dash sedang dalam cooldown
+     * 
+     * @param currentTime waktu saat ini (System.nanoTime())
+     * @return true jika masih cooldown
+     */
+    public boolean isDashOnCooldown(long currentTime) {
+        long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000;
+        return timeSinceLastDash < DASH_COOLDOWN;
+    }
+    
+    /**
+     * Get sisa cooldown dash dalam milliseconds
+     * 
+     * @param currentTime waktu saat ini (System.nanoTime())
+     * @return sisa cooldown (ms), atau 0 jika sudah bisa dash
+     */
+    public long getDashCooldownRemaining(long currentTime) {
+        long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000;
+        long remaining = DASH_COOLDOWN - timeSinceLastDash;
+        return remaining > 0 ? remaining : 0;
     }
 }
