@@ -12,7 +12,7 @@ public interface CookingDevice {
 
     void startCooking();
 
-    void update(float deltaTime);
+    void update(long deltaTime);
 
     void reset();
 }

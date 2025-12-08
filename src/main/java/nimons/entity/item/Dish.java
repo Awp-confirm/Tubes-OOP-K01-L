@@ -26,25 +26,25 @@ public class Dish extends Item {
 
     // utility methods
     public void addComponent(Preparable ingredient) {
-        if (ingredient.canBePlacedOnPlate()) {
+        if (components != null && ingredient != null && ingredient.canBePlacedOnPlate()) {
             components.add(ingredient);
         }
     }
 
     public boolean removeComponent(Preparable ingredient) {
-        return components.remove(ingredient);
+        return components != null && components.remove(ingredient);
     }
 
     public int getComponentCount() {
-        return components.size();
+        return components != null ? components.size() : 0;
     }
 
     public boolean isEmpty() {
-        return components.isEmpty();
+        return components == null || components.isEmpty();
     }
 
     public boolean isComplete() {
         // Dish dianggap complete jika memiliki minimal 1 component
-        return !components.isEmpty();
+        return components != null && !components.isEmpty();
     }
 }

@@ -5,7 +5,9 @@ public class Plate extends KitchenUtensil {
     private boolean clean;
     private Dish dish;
 
-    public Plate() {}
+    public Plate() {
+        this("plate", true, null);
+    }
 
     public Plate(String id, boolean clean, Dish dish) {
         super(id, "Plate", true, null);
@@ -28,6 +30,15 @@ public class Plate extends KitchenUtensil {
 
     public void setDish(Dish dish) { 
         this.dish = dish; 
+    }
+    
+    // Aliases for backward compatibility with stations
+    public Dish getFood() {
+        return dish;
+    }
+    
+    public void setFood(Dish dish) {
+        this.dish = dish;
     }
 
     // utility methods
