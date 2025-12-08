@@ -12,6 +12,8 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import nimons.entity.chef.Chef;
 import nimons.entity.chef.Direction;
@@ -59,6 +61,14 @@ public class GameScreen {
     private boolean moveRight = false;
     private long lastMoveTime = 0;
     private static final long MOVE_COOLDOWN = 150; // milliseconds
+    
+    // Pause state
+    private boolean isPaused = false;
+    private long pauseStartTime = 0;
+    private double menuMainMenuButtonX = 0;
+    private double menuMainMenuButtonY = 0;
+    private double menuMainMenuButtonWidth = 0;
+    private double menuMainMenuButtonHeight = 0;
     
     // Asset images
     private Image floorImage;
@@ -228,6 +238,11 @@ public class GameScreen {
     }
 
     private void update(long deltaTime) {
+        // Skip update jika game di-pause
+        if (isPaused) {
+            return;
+        }
+        
         // Handle chef movement
         handleChefMovement(System.nanoTime());
         
@@ -374,6 +389,11 @@ public class GameScreen {
                     break;
             }
         }
+        
+        // Render pause menu jika game di-pause
+        if (isPaused) {
+            renderPauseMenu();
+        }
     }
     
     private Image getStationImage(Station station) {
@@ -412,6 +432,9 @@ public class GameScreen {
         // Setup keyboard controls
         setupKeyboardControls(scene);
         
+        // Setup mouse controls for pause menu
+        setupMouseControls(scene);
+        
         stage.setScene(scene);
         stage.setTitle("Nimonscooked - Game");
         gameLoop.start();
@@ -421,6 +444,16 @@ public class GameScreen {
         if (gameLoop != null) {
             gameLoop.stop();
         }
+    }
+    
+    private void goToMainMenu() {
+        stop();
+        MainMenuScene menu = new MainMenuScene(stage);
+        Scene scene = new Scene(menu.rootPane);
+        scene.getStylesheets().add(getClass().getResource("/styles/mainmenu.css").toExternalForm());
+        
+        stage.setTitle("Nimonscooked - Main Menu");
+        stage.setScene(scene);
     }
     
     private void setupKeyboardControls(Scene scene) {
@@ -437,6 +470,9 @@ public class GameScreen {
                     break;
                 case D:
                     moveRight = true;
+                    break;
+                case ESCAPE:
+                    togglePause();
                     break;
                 default:
                     break;
@@ -534,5 +570,84 @@ public class GameScreen {
                 lastMoveTime = currentTime;
             }
         }
+    }
+    
+    private void togglePause() {
+        isPaused = !isPaused;
+        if (isPaused) {
+            pauseStartTime = System.currentTimeMillis();
+        }
+    }
+    
+    private void renderPauseMenu() {
+        // Draw semi-transparent overlay
+        gc.setFill(Color.color(0, 0, 0, 0.7));
+        gc.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+        
+        // Draw pause menu box
+        double menuWidth = 400;
+        double menuHeight = 300;
+        double menuX = (WINDOW_WIDTH - menuWidth) / 2;
+        double menuY = (WINDOW_HEIGHT - menuHeight) / 2;
+        
+        // Menu background
+        gc.setFill(Color.web("#220606"));
+        gc.fillRoundRect(menuX, menuY, menuWidth, menuHeight, 20, 20);
+        
+        // Menu border
+        gc.setStroke(Color.web("#4b2a20"));
+        gc.setLineWidth(3);
+        gc.strokeRoundRect(menuX, menuY, menuWidth, menuHeight, 20, 20);
+        
+        // Title
+        gc.setFill(Color.web("#F2C38F"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 48));
+        gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+        gc.fillText("PAUSED", WINDOW_WIDTH / 2, menuY + 80);
+        // Instructions
+        gc.setFont(Font.font("Arial", 20));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("Press ESC to resume", WINDOW_WIDTH / 2, menuY + 140);
+        
+        // Main Menu Button
+        drawButton(gc, "Main Menu", menuX + (menuWidth - 200) / 2, menuY + 190, 200, 50);
+    }
+
+    private void setupMouseControls(Scene scene) {
+        scene.setOnMouseClicked(event -> {
+            if (isPaused) {
+                double mouseX = event.getX();
+                double mouseY = event.getY();
+                
+                // Check if click is within Main Menu button
+                if (mouseX >= menuMainMenuButtonX && mouseX <= menuMainMenuButtonX + menuMainMenuButtonWidth &&
+                    mouseY >= menuMainMenuButtonY && mouseY <= menuMainMenuButtonY + menuMainMenuButtonHeight) {
+                    goToMainMenu();
+                }
+            }
+        });
+    }
+    
+    private void drawButton(GraphicsContext gc, String text, double x, double y, double width, double height) {
+        // Store button bounds for mouse click detection
+        menuMainMenuButtonX = x;
+        menuMainMenuButtonY = y;
+        menuMainMenuButtonWidth = width;
+        menuMainMenuButtonHeight = height;
+        
+        // Button background
+        gc.setFill(Color.web("#220606"));
+        gc.fillRoundRect(x, y, width, height, 10, 10);
+        
+        // Button border
+        gc.setStroke(Color.web("#4b2a20"));
+        gc.setLineWidth(2);
+        gc.strokeRoundRect(x, y, width, height, 10, 10);
+        
+        // Button text
+        gc.setFill(Color.web("#F2C38F"));
+        gc.setFont(Font.font("Arial", 18));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText(text, x + width / 2, y + height / 2 + 6);
     }
 }
