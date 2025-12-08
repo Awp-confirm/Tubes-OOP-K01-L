@@ -24,3 +24,7 @@ replay_pid*
 
 # Ignore dummy classes folder
 **/dummy/
+
+# ignore gradle folder
+.gradle/
+build/
