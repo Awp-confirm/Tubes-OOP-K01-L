@@ -105,44 +105,42 @@ public class GameScreen {
         floorImage = loadImage("/assets/picture/floor.png");
         System.out.println("Floor image loaded: " + (floorImage != null));
         
+        // Wall image - fallback ke floor jika tidak ada
         wallImage = loadImage("/assets/picture/wall.png");
-        System.out.println("Wall image loaded: " + (wallImage != null));
+        if (wallImage == null) {
+            wallImage = floorImage; // Use floor as fallback
+            System.out.println("Wall image using floor fallback");
+        } else {
+            System.out.println("Wall image loaded: " + (wallImage != null));
+        }
         
         // Load chef image
         chefImage = loadImage("/assets/picture/chef.png");
         System.out.println("Chef image loaded: " + (chefImage != null));
         
-        // Load station images
-        Image cookImg = loadImage("/assets/picture/cook.png");
-        if (cookImg != null) {
-            stationImages.put("cook", cookImg);
-            System.out.println("✓ cook.png loaded");
-        } else {
-            System.out.println("✗ cook.png FAILED");
-        }
-        
+        // Load station images - gunakan table.png sebagai default untuk semua station
         Image tableImg = loadImage("/assets/picture/table.png");
         if (tableImg != null) {
+            System.out.println("✓ table.png loaded (default for stations)");
+            // Set table sebagai default untuk semua station
             stationImages.put("table", tableImg);
-            System.out.println("✓ table.png loaded");
-        } else {
-            System.out.println("✗ table.png FAILED");
+            stationImages.put("cook", tableImg);
+            stationImages.put("serving", tableImg);
+            stationImages.put("wash", tableImg);
         }
         
-        Image servingImg = loadImage("/assets/picture/serving.png");
-        if (servingImg != null) {
-            stationImages.put("serving", servingImg);
-            System.out.println("✓ serving.png loaded");
-        } else {
-            System.out.println("✗ serving.png FAILED");
+        // Load CuttingStation image (override table if exists)
+        Image cuttingImg = loadImage("/assets/picture/CuttingStation.png");
+        if (cuttingImg != null) {
+            stationImages.put("cutting", cuttingImg);
+            System.out.println("✓ CuttingStation.png loaded");
         }
         
-        Image washImg = loadImage("/assets/picture/washstasion.png");
-        if (washImg != null) {
-            stationImages.put("wash", washImg);
-            System.out.println("✓ washstasion.png loaded");
-        } else {
-            System.out.println("✗ washstasion.png FAILED");
+        // Load Trash image
+        Image trashImg = loadImage("/assets/picture/Trash.png");
+        if (trashImg != null) {
+            stationImages.put("trash", trashImg);
+            System.out.println("✓ Trash.png loaded");
         }
         
         System.out.println("=== Assets Loading Complete ===");
@@ -365,22 +363,10 @@ public class GameScreen {
                         gc.fillText(initial, screenX + tileSize * 0.4, screenY + tileSize * 0.6);
                     }
                 }
-                
-                // Draw spawn positions
-                if (spawnPositions != null) {
-                    for (Position spawn : spawnPositions) {
-                        if (spawn.getX() == x && spawn.getY() == y) {
-                            gc.setFill(Color.web("#4ecdc480")); // Semi-transparent
-                            double ovalPadding = tileSize * 0.2;
-                            gc.fillOval(screenX + ovalPadding, screenY + ovalPadding, 
-                                       tileSize - ovalPadding * 2, tileSize - ovalPadding * 2);
-                        }
-                    }
-                }
             }
         }
         
-        // Draw both chefs
+        // Draw both chefs (overlay di atas lantai)
         if (playerChef != null) {
             drawChef(playerChef, offsetX, offsetY, playerChef == activeChef);
         }
@@ -399,8 +385,8 @@ public class GameScreen {
             // R = Cooking Station (Stove/Oven)
             return stationImages.get("cook");
         } else if (station instanceof CuttingStation) {
-            // C = Cutting Station
-            return stationImages.get("table");
+            // C = Cutting Station - gunakan asset khusus
+            return stationImages.getOrDefault("cutting", stationImages.get("table"));
         } else if (station instanceof AssemblyStation) {
             // A = Assembly Station
             return stationImages.get("table");
@@ -417,8 +403,8 @@ public class GameScreen {
             // P = Plate Storage
             return stationImages.get("table");
         } else if (station instanceof nimons.entity.station.TrashStation) {
-            // T = Trash Station
-            return stationImages.get("table");
+            // T = Trash Station - gunakan asset khusus
+            return stationImages.getOrDefault("trash", stationImages.get("table"));
         }
         return null;
     }
