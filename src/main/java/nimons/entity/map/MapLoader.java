@@ -21,26 +21,39 @@ import nimons.entity.station.WashingStation;
 public class MapLoader {
 
     /**
-     * Load map dari resources/maps/{stageId}.txt
+     * Load map dari resources/assets/maps/{stageId}.txt
      *
      * Contoh:
-     *  stageId = "stage1"  ->  /maps/stage1.txt
+     *  stageId = "stageSushi"  ->  /assets/maps/stageSushi.txt
      */
     public MapLoadResult load(String stageId) {
-        String path = "/maps/" + stageId + ".txt";
+        String path = "/assets/maps/" + stageId + ".txt";
 
         List<String> lines = readAllLines(path);
         if (lines.isEmpty()) {
             throw new IllegalArgumentException("Map file empty: " + path);
         }
 
-        int height = lines.size();
-        int width = lines.get(0).length();
-
-        // Validasi: semua baris sama panjang
+        // Find maximum width
+        int width = 0;
         for (String line : lines) {
-            if (line.length() != width) {
-                throw new IllegalArgumentException("Inconsistent row length in map file: " + path);
+            if (line.length() > width) {
+                width = line.length();
+            }
+        }
+        
+        int height = lines.size();
+
+        // Pad all lines to same width
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (line.length() < width) {
+                // Pad with spaces (walkable tiles)
+                StringBuilder sb = new StringBuilder(line);
+                while (sb.length() < width) {
+                    sb.append('.');
+                }
+                lines.set(i, sb.toString());
             }
         }
 

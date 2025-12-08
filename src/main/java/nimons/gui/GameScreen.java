@@ -13,6 +13,8 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import nimons.entity.chef.Chef;
+import nimons.entity.chef.Direction;
 import nimons.entity.common.Position;
 import nimons.entity.map.MapLoadResult;
 import nimons.entity.map.MapLoader;
@@ -37,14 +39,31 @@ public class GameScreen {
     private TileManager tileManager;
     private List<Position> spawnPositions;
     private AnimationTimer gameLoop;
+    private Chef playerChef;
+    
+    // Smooth movement
+    private double chefRenderX = 0;
+    private double chefRenderY = 0;
+    private double chefTargetX = 0;
+    private double chefTargetY = 0;
+    private static final double MOVE_SPEED = 0.3; // Interpolation speed
     
     private double tileSize = 64; // Dynamic tile size
     private static final double WINDOW_WIDTH = 1200;
     private static final double WINDOW_HEIGHT = 800;
     
+    // Chef movement control
+    private boolean moveUp = false;
+    private boolean moveDown = false;
+    private boolean moveLeft = false;
+    private boolean moveRight = false;
+    private long lastMoveTime = 0;
+    private static final long MOVE_COOLDOWN = 150; // milliseconds
+    
     // Asset images
     private Image floorImage;
     private Image wallImage;
+    private Image chefImage;
     private Map<String, Image> stationImages;
 
     public GameScreen(Stage stage) {
@@ -68,41 +87,53 @@ public class GameScreen {
     private void loadAssets() {
         stationImages = new HashMap<>();
         
-        System.out.println("Loading assets...");
+        System.out.println("=== Loading Assets ===");
         
         // Load tile images
         floorImage = loadImage("/assets/picture/floor.png");
-        if (floorImage != null) System.out.println("✓ floor.png loaded");
+        System.out.println("Floor image loaded: " + (floorImage != null));
         
         wallImage = loadImage("/assets/picture/wall.png");
-        if (wallImage != null) System.out.println("✓ wall.png loaded");
+        System.out.println("Wall image loaded: " + (wallImage != null));
+        
+        // Load chef image
+        chefImage = loadImage("/assets/picture/chef.png");
+        System.out.println("Chef image loaded: " + (chefImage != null));
         
         // Load station images
         Image cookImg = loadImage("/assets/picture/cook.png");
         if (cookImg != null) {
             stationImages.put("cook", cookImg);
             System.out.println("✓ cook.png loaded");
+        } else {
+            System.out.println("✗ cook.png FAILED");
         }
         
         Image tableImg = loadImage("/assets/picture/table.png");
         if (tableImg != null) {
             stationImages.put("table", tableImg);
             System.out.println("✓ table.png loaded");
+        } else {
+            System.out.println("✗ table.png FAILED");
         }
         
         Image servingImg = loadImage("/assets/picture/serving.png");
         if (servingImg != null) {
             stationImages.put("serving", servingImg);
             System.out.println("✓ serving.png loaded");
+        } else {
+            System.out.println("✗ serving.png FAILED");
         }
         
         Image washImg = loadImage("/assets/picture/washstasion.png");
         if (washImg != null) {
             stationImages.put("wash", washImg);
             System.out.println("✓ washstasion.png loaded");
+        } else {
+            System.out.println("✗ washstasion.png FAILED");
         }
         
-        System.out.println("Assets loading complete!");
+        System.out.println("=== Assets Loading Complete ===");
     }
     
     private Image loadImage(String path) {
@@ -141,6 +172,26 @@ public class GameScreen {
             System.out.println("Map size: " + tileManager.getWidth() + "x" + tileManager.getHeight());
             System.out.println("Tile size: " + tileSize);
             System.out.println("Spawn positions: " + spawnPositions.size());
+            
+            // Create chef at spawn position
+            if (!spawnPositions.isEmpty()) {
+                Position spawnPos = spawnPositions.get(0);
+                playerChef = new Chef("player1", "Chef", spawnPos, Direction.DOWN);
+                
+                // Initialize smooth position
+                chefRenderX = spawnPos.getX();
+                chefRenderY = spawnPos.getY();
+                chefTargetX = spawnPos.getX();
+                chefTargetY = spawnPos.getY();
+                
+                // Place chef on tile
+                Tile spawnTile = tileManager.getTileAt(spawnPos);
+                if (spawnTile != null) {
+                    spawnTile.setChefOnTile(playerChef);
+                }
+                
+                System.out.println("Chef spawned at: (" + spawnPos.getX() + ", " + spawnPos.getY() + ")");
+            }
         } catch (Exception e) {
             System.err.println("Failed to load map: " + stageId);
             e.printStackTrace();
@@ -177,6 +228,23 @@ public class GameScreen {
     }
 
     private void update(long deltaTime) {
+        // Handle chef movement
+        handleChefMovement(System.nanoTime());
+        
+        // Smooth chef position interpolation
+        if (playerChef != null) {
+            double dx = chefTargetX - chefRenderX;
+            double dy = chefTargetY - chefRenderY;
+            
+            if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+                chefRenderX += dx * MOVE_SPEED;
+                chefRenderY += dy * MOVE_SPEED;
+            } else {
+                chefRenderX = chefTargetX;
+                chefRenderY = chefTargetY;
+            }
+        }
+        
         // Update all stations
         if (tileManager != null) {
             Tile[][] tiles = tileManager.getTiles();
@@ -219,19 +287,21 @@ public class GameScreen {
                     if (wallImage != null) {
                         gc.drawImage(wallImage, screenX, screenY, tileSize, tileSize);
                     } else {
-                        gc.setFill(Color.web("#3d3d3d"));
+                        // Fallback: dark gray wall
+                        gc.setFill(Color.web("#2d2d2d"));
                         gc.fillRect(screenX, screenY, tileSize, tileSize);
                     }
                 } else {
                     if (floorImage != null) {
                         gc.drawImage(floorImage, screenX, screenY, tileSize, tileSize);
                     } else {
+                        // Fallback: light floor
                         gc.setFill(Color.web("#e8dcc8"));
                         gc.fillRect(screenX, screenY, tileSize, tileSize);
                     }
                 }
                 
-                // Draw station
+                // Draw station on top of floor
                 Station station = tile.getStation();
                 if (station != null) {
                     Image stationImage = getStationImage(station);
@@ -246,9 +316,9 @@ public class GameScreen {
                         
                         // Draw station initial
                         gc.setFill(Color.WHITE);
-                        gc.setFont(javafx.scene.text.Font.font(tileSize * 0.4));
-                        gc.fillText(station.getName().substring(0, 1), 
-                                   screenX + tileSize * 0.35, screenY + tileSize * 0.65);
+                        gc.setFont(javafx.scene.text.Font.font(tileSize * 0.3));
+                        String initial = station.getClass().getSimpleName().substring(0, 1);
+                        gc.fillText(initial, screenX + tileSize * 0.4, screenY + tileSize * 0.6);
                     }
                 }
                 
@@ -263,6 +333,45 @@ public class GameScreen {
                         }
                     }
                 }
+            }
+        }
+        
+        // Draw chef with smooth movement
+        if (playerChef != null && chefImage != null) {
+            double chefScreenX = offsetX + chefRenderX * tileSize;
+            double chefScreenY = offsetY + chefRenderY * tileSize;
+            
+            // Draw chef using image asset with smooth interpolation
+            gc.drawImage(chefImage, chefScreenX, chefScreenY, tileSize, tileSize);
+        } else if (playerChef != null) {
+            // Fallback: Draw chef as a circle if image not loaded
+            double chefScreenX = offsetX + chefRenderX * tileSize;
+            double chefScreenY = offsetY + chefRenderY * tileSize;
+            
+            gc.setFill(Color.web("#ff6b6b"));
+            double chefPadding = tileSize * 0.15;
+            gc.fillOval(chefScreenX + chefPadding, chefScreenY + chefPadding,
+                       tileSize - chefPadding * 2, tileSize - chefPadding * 2);
+            
+            // Draw direction indicator
+            gc.setFill(Color.WHITE);
+            double dirSize = tileSize * 0.15;
+            double centerX = chefScreenX + tileSize / 2;
+            double centerY = chefScreenY + tileSize / 2;
+            
+            switch (playerChef.getDirection()) {
+                case UP:
+                    gc.fillRect(centerX - dirSize / 2, centerY - tileSize * 0.3, dirSize, dirSize);
+                    break;
+                case DOWN:
+                    gc.fillRect(centerX - dirSize / 2, centerY + tileSize * 0.15, dirSize, dirSize);
+                    break;
+                case LEFT:
+                    gc.fillRect(centerX - tileSize * 0.3, centerY - dirSize / 2, dirSize, dirSize);
+                    break;
+                case RIGHT:
+                    gc.fillRect(centerX + tileSize * 0.15, centerY - dirSize / 2, dirSize, dirSize);
+                    break;
             }
         }
     }
@@ -300,6 +409,9 @@ public class GameScreen {
         Scene scene = new Scene(rootPane, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.getStylesheets().add(getClass().getResource("/styles/mainmenu.css").toExternalForm());
         
+        // Setup keyboard controls
+        setupKeyboardControls(scene);
+        
         stage.setScene(scene);
         stage.setTitle("Nimonscooked - Game");
         gameLoop.start();
@@ -308,6 +420,119 @@ public class GameScreen {
     public void stop() {
         if (gameLoop != null) {
             gameLoop.stop();
+        }
+    }
+    
+    private void setupKeyboardControls(Scene scene) {
+        scene.setOnKeyPressed(event -> {
+            switch (event.getCode()) {
+                case W:
+                    moveUp = true;
+                    break;
+                case S:
+                    moveDown = true;
+                    break;
+                case A:
+                    moveLeft = true;
+                    break;
+                case D:
+                    moveRight = true;
+                    break;
+                default:
+                    break;
+            }
+        });
+        
+        scene.setOnKeyReleased(event -> {
+            switch (event.getCode()) {
+                case W:
+                    moveUp = false;
+                    break;
+                case S:
+                    moveDown = false;
+                    break;
+                case A:
+                    moveLeft = false;
+                    break;
+                case D:
+                    moveRight = false;
+                    break;
+                default:
+                    break;
+            }
+        });
+    }
+    
+    private void handleChefMovement(long currentTime) {
+        if (playerChef == null || tileManager == null) {
+            return;
+        }
+        
+        // Movement cooldown
+        if (currentTime - lastMoveTime < MOVE_COOLDOWN * 1_000_000) {
+            return;
+        }
+        
+        Direction newDirection = null;
+        
+        if (moveUp) {
+            newDirection = Direction.UP;
+        } else if (moveDown) {
+            newDirection = Direction.DOWN;
+        } else if (moveLeft) {
+            newDirection = Direction.LEFT;
+        } else if (moveRight) {
+            newDirection = Direction.RIGHT;
+        }
+        
+        if (newDirection != null) {
+            Position currentPos = playerChef.getPosition();
+            playerChef.setDirection(newDirection);
+            
+            // Calculate new position
+            int newX = currentPos.getX();
+            int newY = currentPos.getY();
+            
+            switch (newDirection) {
+                case UP:
+                    newY--;
+                    break;
+                case DOWN:
+                    newY++;
+                    break;
+                case LEFT:
+                    newX--;
+                    break;
+                case RIGHT:
+                    newX++;
+                    break;
+            }
+            
+            Position newPos = new Position(newX, newY);
+            
+            // Check if can move to new position
+            if (tileManager.isWalkable(newPos)) {
+                // Remove chef from old tile
+                Tile oldTile = tileManager.getTileAt(currentPos);
+                if (oldTile != null) {
+                    oldTile.setChefOnTile(null);
+                }
+                
+                // Move chef
+                playerChef.setPosition(newPos);
+                
+                // Update target position for smooth movement
+                chefTargetX = newPos.getX();
+                chefTargetY = newPos.getY();
+                
+                // Add chef to new tile
+                Tile newTile = tileManager.getTileAt(newPos);
+                if (newTile != null) {
+                    newTile.setChefOnTile(playerChef);
+                }
+                
+                lastMoveTime = currentTime;
+            }
         }
     }
 }
