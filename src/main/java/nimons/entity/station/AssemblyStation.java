@@ -2,10 +2,10 @@ package nimons.entity.station;
 
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
-import nimons.entity.item.Item;
-import nimons.entity.item.Plate;
 import nimons.entity.item.Dish;
+import nimons.entity.item.Item;
 import nimons.entity.item.KitchenUtensil;
+import nimons.entity.item.Plate;
 import nimons.logic.recipe.RecipeManager;
 
 /**
@@ -40,7 +40,7 @@ public class AssemblyStation extends Station {
                 processPlating((Plate) itemHand, isi);
                 
                 // Jika sukses masuk piring, kosongkan wadah masakan
-                if (((Plate)itemHand).getFood() != null) {
+                if (((Plate)itemHand).getDish() != null) {
                     panci.getContents().clear();
                     log("INFO", "Isi Utensil dikosongkan setelah plating.");
                 }
@@ -69,13 +69,13 @@ public class AssemblyStation extends Station {
         // SCENARIO 4: ASSEMBLY / KOMBINASI RESEP (Hand: Item, Table: Plate)
         if (itemHand != null && itemTable instanceof Plate) {
             Plate piring = (Plate) itemTable;
-            Item isiPiring = piring.getFood();
+            Item isiPiring = piring.getDish();
 
             // 4a. Plating Manual Pertama (Piring di meja kosong)
             if (isiPiring == null) {
                 processPlating(piring, itemHand);
                 // Jika plating berhasil, item di tangan Chef akan kosong
-                if (piring.getFood() != null) chef.setInventory(null); 
+                if (piring.getDish() != null) chef.setInventory(null); 
                 return;
             }
 
@@ -83,7 +83,7 @@ public class AssemblyStation extends Station {
             Dish hasil = RecipeManager.findMatch(itemHand, isiPiring);
             
             if (hasil != null) {
-                piring.setFood(hasil);
+                piring.setDish(hasil);
                 chef.setInventory(null); 
                 log("SUCCESS", "Assembly Berhasil: " + hasil.getName());
             } else {

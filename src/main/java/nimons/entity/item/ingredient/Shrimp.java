@@ -3,15 +3,15 @@ package nimons.entity.item.ingredient;
 import nimons.entity.item.Ingredient;
 import nimons.entity.item.IngredientState;
 
-public class Rice extends Ingredient {
+public class Shrimp extends Ingredient {
 
-    public Rice() {
-        super("rice", "Rice", IngredientState.RAW);
+    public Shrimp() {
+        super("shrimp", "Shrimp", IngredientState.RAW);
     }
 
     @Override
     public boolean canBeChopped() {
-        return false; // Rice tidak perlu dipotong
+        return false; // Shrimp tidak perlu dipotong
     }
 
     @Override
@@ -26,7 +26,7 @@ public class Rice extends Ingredient {
 
     @Override
     public void chop() {
-        // Rice tidak bisa dipotong
+        // Shrimp tidak bisa dipotong
     }
 
     @Override

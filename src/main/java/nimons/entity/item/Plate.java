@@ -29,4 +29,28 @@ public class Plate extends KitchenUtensil {
     public void setDish(Dish dish) { 
         this.dish = dish; 
     }
+
+    // utility methods
+    public boolean canPlaceDish() {
+        return clean && dish == null;
+    }
+
+    public void placeDish(Dish newDish) {
+        if (canPlaceDish()) {
+            this.dish = newDish;
+        }
+    }
+
+    public void washPlate() {
+        if (dish == null) {
+            this.clean = true;
+        }
+    }
+
+    public Dish removeDish() {
+        Dish removedDish = this.dish;
+        this.dish = null;
+        this.clean = false;
+        return removedDish;
+    }
 }

@@ -17,6 +17,7 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     }
 
     // getters & setters
+    @Override
     public int capacity() { 
         return capacity; 
     }
@@ -25,19 +26,41 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
         this.capacity = capacity; 
     }
 
-    @Override public boolean isPortable() { 
+    @Override 
+    public boolean isPortable() { 
         return super.isPortable(); 
     }
 
-    @Override public boolean canAccept(Preparable ingredient) { 
-        return false; 
+    @Override 
+    public boolean canAccept(Preparable ingredient) { 
+        // Frying pan bisa menerima ingredient jika belum penuh dan ingredient bisa dimasak
+        return getContents().size() < capacity && ingredient.canBeCooked();
     }
 
-    @Override public void addIngredient(Preparable ingredient) {
-
+    @Override 
+    public void addIngredient(Preparable ingredient) {
+        if (canAccept(ingredient)) {
+            getContents().add(ingredient);
+        }
     }
 
-    @Override public void startCooking() {
-        
+    @Override 
+    public void startCooking() {
+        // Masak semua ingredient dalam frying pan
+        for (Preparable ingredient : getContents()) {
+            if (ingredient.canBeCooked()) {
+                ingredient.cook();
+            }
+        }
+    }
+
+    @Override
+    public void update(float deltaTime) {
+        // Update cooking progress
+    }
+
+    @Override
+    public void reset() {
+        getContents().clear();
     }
 }

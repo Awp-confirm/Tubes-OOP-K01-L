@@ -23,4 +23,28 @@ public class Dish extends Item {
     public void setComponents(List<Preparable> components) { 
         this.components = components; 
     }
+
+    // utility methods
+    public void addComponent(Preparable ingredient) {
+        if (ingredient.canBePlacedOnPlate()) {
+            components.add(ingredient);
+        }
+    }
+
+    public boolean removeComponent(Preparable ingredient) {
+        return components.remove(ingredient);
+    }
+
+    public int getComponentCount() {
+        return components.size();
+    }
+
+    public boolean isEmpty() {
+        return components.isEmpty();
+    }
+
+    public boolean isComplete() {
+        // Dish dianggap complete jika memiliki minimal 1 component
+        return !components.isEmpty();
+    }
 }

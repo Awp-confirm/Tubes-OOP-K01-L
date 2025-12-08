@@ -3,10 +3,10 @@ package nimons.entity.station;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
-import nimons.entity.item.Plate;
 import nimons.entity.item.KitchenUtensil;
-import nimons.entity.item.interfaces.Preparable; 
+import nimons.entity.item.Plate; 
 import nimons.entity.item.interfaces.CookingDevice;
+import nimons.entity.item.interfaces.Preparable;
 
 /**
  * CookingStation (R) menangani interaksi Chef dengan kompor/oven.
@@ -81,7 +81,7 @@ public class CookingStation extends Station {
                 processPlating((Plate) itemHand, isi);
                 
                 // Jika sukses masuk piring, kosongkan Utensil
-                if (((Plate)itemHand).getFood() != null) {
+                if (((Plate)itemHand).getDish() != null) {
                     utensils.getContents().clear();
                     log("INFO", "Isi Utensil dikosongkan setelah plating.");
                     // Reset status memasak (misal agar timer tidak jalan lagi)

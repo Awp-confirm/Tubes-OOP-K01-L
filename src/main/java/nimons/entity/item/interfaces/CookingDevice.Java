@@ -11,4 +11,8 @@ public interface CookingDevice {
     void addIngredient(Preparable ingredient);
 
     void startCooking();
+
+    void update(float deltaTime);
+
+    void reset();
 }
