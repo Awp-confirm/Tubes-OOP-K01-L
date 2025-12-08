@@ -1,43 +1,56 @@
 package nimons.entity.item;
 
-import java.util.Set;
-
 import nimons.entity.item.interfaces.CookingDevice;
 import nimons.entity.item.interfaces.Preparable;
+import nimons.entity.item.IngredientState;
+import java.util.HashSet;
 
 public class FryingPan extends KitchenUtensil implements CookingDevice {
 
-    private int capacity;
+    private boolean isCooking = false;
+    private float timer = 0;
+    private final float COOK_TIME = 12000; 
+    private final float BURN_TIME = 24000; 
 
-    public FryingPan() {}
-
-    public FryingPan(String id, int capacity, Set<Preparable> contents) {
-        super(id, "Frying Pan", true, contents);
-        this.capacity = capacity;
+    // FIX: Pastikan ada constructor default
+    public FryingPan() {
+        this("", 1);
     }
 
-    // getters & setters
-    public int capacity() { 
-        return capacity; 
+    public FryingPan(String id, int capacity) {
+        super(id, "Frying Pan", true, new HashSet<>(), capacity);
+    }
+    // ... (sisa method sama) ...
+
+    @Override
+    public void update(long deltaTime) {
+        if (isCooking && !getContents().isEmpty()) {
+            timer += deltaTime;
+            if (timer % 1000 < 100) System.out.println(">> Frying Pan: " + (int)(timer/1000) + " detik...");
+            
+            if (timer >= COOK_TIME && timer < BURN_TIME) {
+                 for (Preparable p : getContents()) p.cook();
+            }
+        }
     }
 
-    public void setCapacity(int capacity) { 
-        this.capacity = capacity; 
+    @Override
+    public void reset() {
+        this.isCooking = false;
+        this.timer = 0;
+        System.out.println(">> Frying Pan di-reset.");
     }
 
-    @Override public boolean isPortable() { 
-        return super.isPortable(); 
-    }
+    @Override
+    public boolean isCooking() { return isCooking; }
 
-    @Override public boolean canAccept(Preparable ingredient) { 
-        return false; 
-    }
-
-    @Override public void addIngredient(Preparable ingredient) {
-
-    }
-
-    @Override public void startCooking() {
-        
+    @Override
+    public boolean canAccept(Preparable ingredient) {
+        // GDD: Frying Pan hanya untuk Ingredient CHOPPED
+        if (ingredient.getState() == IngredientState.CHOPPED) {
+            this.isCooking = true;
+            return true;
+        }
+        return false;
     }
 }

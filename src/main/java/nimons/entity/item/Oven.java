@@ -1,43 +1,45 @@
 package nimons.entity.item;
 
-import java.util.Set;
-
 import nimons.entity.item.interfaces.CookingDevice;
 import nimons.entity.item.interfaces.Preparable;
+import java.util.HashSet;
 
 public class Oven extends KitchenUtensil implements CookingDevice {
 
-    private int capacity;
-
-    public Oven() {}
-
-    public Oven(String id, int capacity, Set<Preparable> contents) {
-        super(id, "Oven", false, contents);
-        this.capacity = capacity;
+    private boolean isCooking = false;
+    private float timer = 0;
+    
+    public Oven() {
+        this("", 1);
     }
 
-    // getters & setters
-    public int capacity() { 
-        return capacity; 
+    public Oven(String id, int capacity) {
+        super(id, "Oven", true, new HashSet<>(), capacity); 
+    }
+    // ... (sisa method sama) ...
+
+    @Override
+    public void update(long deltaTime) {
+        if (isCooking && !getContents().isEmpty()) {
+            timer += deltaTime;
+            if (timer % 1000 < 100) System.out.println(">> Oven: " + (int)(timer/1000) + " detik...");
+            // Logic masak sama...
+        }
     }
 
-    public void setCapacity(int capacity) { 
-        this.capacity = capacity; 
+    @Override
+    public void reset() {
+        this.isCooking = false;
+        this.timer = 0;
     }
 
-    @Override public boolean isPortable() { 
-        return super.isPortable(); 
-    }
+    @Override
+    public boolean isCooking() { return isCooking; }
 
-    @Override public boolean canAccept(Preparable ingredient) { 
-        return false; 
-    }
-
-    @Override public void addIngredient(Preparable ingredient) {
-
-    }
-
-    @Override public void startCooking() {
-
+    @Override
+    public boolean canAccept(Preparable ingredient) {
+        // Logic Oven: Terima apa saja dulu untuk sekarang (misal Adonan Pizza)
+        this.isCooking = true;
+        return true;
     }
 }

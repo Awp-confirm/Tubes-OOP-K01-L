@@ -1,42 +1,73 @@
 package nimons.entity.item;
 
-import java.util.Set;
-
 import nimons.entity.item.interfaces.CookingDevice;
 import nimons.entity.item.interfaces.Preparable;
+import nimons.entity.item.IngredientState; // Harus ada import IngredientState
+import java.util.HashSet;
 
 public class BoilingPot extends KitchenUtensil implements CookingDevice {
 
-    private int capacity;
+    private boolean isCooking = false;
+    private float timer = 0;
+    private final float COOK_TIME = 12000;
+    private final float BURN_TIME = 24000;
 
-    public BoilingPot() {}
-
-    public BoilingPot(String id, int capacity, Set<Preparable> contents) {
-        super(id, "Boiling Pot", true, contents);
-        this.capacity = capacity;
+    // FIX #2: Tambahkan constructor default
+    public BoilingPot() {
+        this("", 1);
+    }
+    
+    // FIX #3: Hapus typo 'u' pada constructor
+    public BoilingPot(String id, int capacity) {
+        super(id, "Boiling Pot", true, new HashSet<>(), capacity); 
     }
 
-    // getters & setters
-    public int capacity() { return capacity; }
+    @Override
+    public void update(long deltaTime) {
+        if (isCooking && !getContents().isEmpty()) {
+            timer += deltaTime;
+            
+            // Debug Log Timer
+            if (timer % 1000 < 100) System.out.println(">> Boiling Pot: " + (int)(timer/1000) + " detik...");
 
-    public void setCapacity(int capacity) { 
-        this.capacity = capacity; 
+            if (timer >= BURN_TIME) {
+                 // Logika Gosong
+                 for (Preparable p : getContents()) {
+                     // Set state BURNED
+                 }
+                 System.out.println(">> [ALERT] MAKANAN GOSONG!");
+            } else if (timer >= COOK_TIME) {
+                 // Logika Matang
+                 for (Preparable p : getContents()) {
+                     p.cook(); // Ubah jadi COOKED
+                 }
+                 if (timer < COOK_TIME + 100) System.out.println(">> [TING!] Makanan MATANG!");
+            }
+        }
     }
 
-    // interface methods
-    @Override public boolean isPortable() { 
-        return super.isPortable(); 
+    @Override
+    public void reset() {
+        this.isCooking = false;
+        this.timer = 0;
+        System.out.println(">> Boiling Pot di-reset.");
     }
 
-    @Override public boolean canAccept(Preparable ingredient) { 
-        return false; 
+    @Override
+    public boolean isCooking() {
+        return isCooking;
     }
 
-    @Override public void addIngredient(Preparable ingredient) {
+    @Override
+    public boolean canAccept(Preparable ingredient) {
+        if (isCooking || getContents().size() >= getCapacity()) return false; 
         
-    }
-
-    @Override public void startCooking() {
-
+        String name = ((Item)ingredient).getName().toUpperCase();
+        
+        if (name.contains("RICE") || name.contains("BERAS") || name.contains("PASTA")) {
+            this.isCooking = true;
+            return true;
+        }
+        return false;
     }
 }

@@ -4,78 +4,44 @@ import nimons.entity.common.Position;
 import nimons.entity.item.Item;
 
 public class Chef {
-
     private String id;
     private String name;
     private Position position;
-    private Direction direction;
+    private Direction facingDirection;
     private Item inventory;
-    private ChefAction currentAction;
-    private boolean busy;
+    
+    // ATRIBUT BARU: Status Sibuk
+    private boolean isBusy = false;
 
-    public Chef() {}
-
-    public Chef(String id, String name, Position position, Direction direction) {
+    public Chef(String id, String name, Position position, Direction facingDirection) {
         this.id = id;
         this.name = name;
         this.position = position;
-        this.direction = direction;
+        this.facingDirection = facingDirection;
     }
 
-    // getters & setters
-    public String getId() { 
-        return id; 
-    }
+    public void move(Direction dir, int mapWidth, int mapHeight) {
+        // GDD: Chef tidak bisa gerak kalau sedang BUSY
+        if (isBusy) return;
 
-    public void setId(String id) { 
-        this.id = id; 
-    }
+        this.facingDirection = dir;
+        int newX = position.getX() + dir.getDx();
+        int newY = position.getY() + dir.getDy();
 
-    public String getName() { 
-        return name; 
-    }
-
-    public void setName(String name) { 
-        this.name = name; 
+        if (newX >= 0 && newX < mapWidth && newY >= 0 && newY < mapHeight) {
+            this.position = new Position(newX, newY);
         }
-
-    public Position getPosition() { 
-        return position; 
     }
 
-    public void setPosition(Position position) { 
-        this.position = position; 
-    }
+    // --- GETTER SETTER BUSY ---
+    public boolean isBusy() { return isBusy; }
+    public void setBusy(boolean busy) { this.isBusy = busy; }
 
-    public Direction getDirection() { 
-        return direction; 
+    public Item getInventory() { return inventory; }
+    public void setInventory(Item item) { this.inventory = item; }
+    public Position getPosition() { return position; }
+    public Position getFacingPosition() {
+        return new Position(position.getX() + facingDirection.getDx(), position.getY() + facingDirection.getDy());
     }
-
-    public void setDirection(Direction direction) { 
-        this.direction = direction; 
-    }
-
-    public Item getInventory() { 
-        return inventory; 
-    }
-
-    public void setInventory(Item inventory) { 
-        this.inventory = inventory; 
-    }
-
-    public ChefAction getCurrentAction() { 
-        return currentAction; 
-    }
-
-    public void setCurrentAction(ChefAction currentAction) {
-        this.currentAction = currentAction; 
-    }
-
-    public boolean isBusy() { 
-        return busy; 
-    }
-
-    public void setBusy(boolean busy) { 
-        this.busy = busy; 
-    }
+    public String getName() { return name; }
 }
