@@ -2,10 +2,10 @@ package nimons.entity.station;
 
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
+import nimons.entity.item.IngredientState;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate;
-import nimons.entity.item.interfaces.Preparable;
-import nimons.entity.item.IngredientState; // Import yang benar
+import nimons.entity.item.interfaces.Preparable; // Import yang benar
 
 /**
  * CuttingStation (C) menangani pemotongan bahan (RAW -> CHOPPED).
@@ -58,7 +58,7 @@ public class CuttingStation extends Station {
         if (itemHand instanceof Plate && placedItem != null) {
             processPlating((Plate) itemHand, placedItem);
             // Jika plating sukses (piring ada isinya), hapus item dari meja
-            if (((Plate)itemHand).getFood() != null) placedItem = null;
+            if (((Plate)itemHand).getDish() != null) placedItem = null;
             return;
         }
 

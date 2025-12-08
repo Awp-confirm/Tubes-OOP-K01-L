@@ -1,73 +1,90 @@
 package nimons.entity.item;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import nimons.entity.item.interfaces.CookingDevice;
 import nimons.entity.item.interfaces.Preparable;
-import nimons.entity.item.IngredientState; // Harus ada import IngredientState
-import java.util.HashSet;
 
 public class BoilingPot extends KitchenUtensil implements CookingDevice {
 
-    private boolean isCooking = false;
-    private float timer = 0;
-    private final float COOK_TIME = 12000;
-    private final float BURN_TIME = 24000;
+    private int capacity;
 
-    // FIX #2: Tambahkan constructor default
     public BoilingPot() {
-        this("", 1);
+        this("boiling_pot", 3, new HashSet<>());
+    }
+
+    public BoilingPot(String id, int capacity, Set<Preparable> contents) {
+        super(id, "Boiling Pot", true, contents);
+        this.capacity = capacity;
+    }
+
+    // getters & setters
+    @Override
+    public int capacity() { 
+        return capacity; 
     }
     
-    // FIX #3: Hapus typo 'u' pada constructor
-    public BoilingPot(String id, int capacity) {
-        super(id, "Boiling Pot", true, new HashSet<>(), capacity); 
+    @Override
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(int capacity) { 
+        this.capacity = capacity; 
+    }
+
+    // interface methods
+    @Override 
+    public boolean isPortable() { 
+        return super.isPortable(); 
+    }
+
+    @Override 
+    public boolean canAccept(Preparable ingredient) { 
+        // Boiling pot bisa menerima ingredient jika belum penuh dan ingredient bisa dimasak
+        Set<Preparable> contents = getContents();
+        if (contents == null) {
+            return false;
+        }
+        return contents.size() < capacity && ingredient != null && ingredient.canBeCooked();
+    }
+
+    @Override 
+    public void addIngredient(Preparable ingredient) {
+        if (canAccept(ingredient) && getContents() != null) {
+            getContents().add(ingredient);
+        }
+    }
+
+    @Override 
+    public void startCooking() {
+        // Masak semua ingredient dalam pot
+        if (getContents() != null) {
+            for (Preparable ingredient : getContents()) {
+                if (ingredient.canBeCooked()) {
+                    ingredient.cook();
+                }
+            }
+        }
     }
 
     @Override
     public void update(long deltaTime) {
-        if (isCooking && !getContents().isEmpty()) {
-            timer += deltaTime;
-            
-            // Debug Log Timer
-            if (timer % 1000 < 100) System.out.println(">> Boiling Pot: " + (int)(timer/1000) + " detik...");
-
-            if (timer >= BURN_TIME) {
-                 // Logika Gosong
-                 for (Preparable p : getContents()) {
-                     // Set state BURNED
-                 }
-                 System.out.println(">> [ALERT] MAKANAN GOSONG!");
-            } else if (timer >= COOK_TIME) {
-                 // Logika Matang
-                 for (Preparable p : getContents()) {
-                     p.cook(); // Ubah jadi COOKED
-                 }
-                 if (timer < COOK_TIME + 100) System.out.println(">> [TING!] Makanan MATANG!");
+        // Update cooking progress for all ingredients
+        if (getContents() != null) {
+            for (Preparable ingredient : getContents()) {
+                if (ingredient.getState() == nimons.entity.item.IngredientState.COOKING) {
+                    // Continue cooking process
+                }
             }
         }
     }
 
     @Override
     public void reset() {
-        this.isCooking = false;
-        this.timer = 0;
-        System.out.println(">> Boiling Pot di-reset.");
-    }
-
-    @Override
-    public boolean isCooking() {
-        return isCooking;
-    }
-
-    @Override
-    public boolean canAccept(Preparable ingredient) {
-        if (isCooking || getContents().size() >= getCapacity()) return false; 
-        
-        String name = ((Item)ingredient).getName().toUpperCase();
-        
-        if (name.contains("RICE") || name.contains("BERAS") || name.contains("PASTA")) {
-            this.isCooking = true;
-            return true;
+        if (getContents() != null) {
+            getContents().clear();
         }
-        return false;
     }
 }

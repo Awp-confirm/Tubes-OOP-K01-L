@@ -45,28 +45,74 @@ public class TileManager {
         this.tiles = tiles;
     }
 
-    // ====== placeholders ======
+    /**
+     * Check if position is within map bounds
+     */
+    public boolean isInBounds(Position pos) {
+        return pos.getX() >= 0 && pos.getX() < width &&
+               pos.getY() >= 0 && pos.getY() < height;
+    }
 
+    /**
+     * Get tile at position
+     */
+    public Tile getTileAt(Position pos) {
+        if (!isInBounds(pos)) {
+            return null;
+        }
+        return tiles[pos.getY()][pos.getX()];
+    }
+
+    /**
+     * Check if position is walkable
+     */
     public boolean isWalkable(Position pos) {
-        return false;
+        if (!isInBounds(pos)) {
+            return false;
+        }
+        Tile tile = getTileAt(pos);
+        return tile != null && tile.isWalkable();
     }
 
+    /**
+     * Get station at position
+     */
     public Station getStationAt(Position pos) {
-        return null;
+        Tile tile = getTileAt(pos);
+        return tile != null ? tile.getStation() : null;
     }
 
+    /**
+     * Get item at position
+     */
     public Item getItemAt(Position pos) {
-        return null;
+        Tile tile = getTileAt(pos);
+        return tile != null ? tile.getItemOnTile() : null;
     }
 
+    /**
+     * Place item on tile
+     */
     public void placeItem(Position pos, Item item) {
-        // no-op
+        Tile tile = getTileAt(pos);
+        if (tile != null) {
+            tile.setItemOnTile(item);
+        }
     }
 
+    /**
+     * Remove item from tile
+     */
     public void removeItem(Position pos) {
-        // no-op
+        Tile tile = getTileAt(pos);
+        if (tile != null) {
+            tile.setItemOnTile(null);
+        }
     }
 
+    /**
+     * Get spawn points (placeholder)
+     */
     public List<Position> getSpawnPoints() {
         return null;
     }

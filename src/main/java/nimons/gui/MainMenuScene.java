@@ -30,7 +30,9 @@ public class MainMenuScene {
     public MainMenuScene(Stage stage) {
         this.stage = stage;
         rootPane = new StackPane();
-        rootPane.setPrefSize(1024, 600);
+        // Use screen bounds for fullscreen
+        rootPane.setPrefSize(javafx.stage.Screen.getPrimary().getBounds().getWidth(), 
+                            javafx.stage.Screen.getPrimary().getBounds().getHeight());
 
         BackgroundImage bg = createBackground("/assets/menu_background.png");
         if (bg != null) rootPane.setBackground(new Background(bg));
@@ -138,8 +140,9 @@ public class MainMenuScene {
     }
 
     private void handlePlay() {
-        System.out.println("Play pressed — integrate scene change to start the game");
-        // desain kasar
+        System.out.println("Play pressed — starting game...");
+        GameScreen gameScreen = new GameScreen(stage);
+        gameScreen.start();
     }
 
     private void handleSettings() {

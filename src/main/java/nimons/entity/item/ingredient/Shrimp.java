@@ -4,29 +4,39 @@ import nimons.entity.item.Ingredient;
 import nimons.entity.item.IngredientState;
 
 public class Shrimp extends Ingredient {
+
     public Shrimp() {
-        super("I-Shrimp", "Udang", IngredientState.RAW);
+        super("shrimp", "Shrimp", IngredientState.RAW);
     }
 
-    @Override public boolean canBeChopped() { return true; } // Harus dikupas/potong dulu
-    @Override public boolean canBeCooked() { return true; }  // Baru bisa dimasak
-
-    @Override public boolean canBePlacedOnPlate() { 
-        return getState() == IngredientState.COOKED; 
+    @Override
+    public boolean canBeChopped() {
+        return false; // Shrimp tidak perlu dipotong
     }
 
-    @Override public void chop() {
+    @Override
+    public boolean canBeCooked() {
+        return getState() == IngredientState.RAW;
+    }
+
+    @Override
+    public boolean canBePlacedOnPlate() {
+        return getState() == IngredientState.COOKED;
+    }
+
+    @Override
+    public void chop() {
+        // Shrimp tidak bisa dipotong
+    }
+
+    @Override
+    public void cook() {
         if (getState() == IngredientState.RAW) {
-            this.setState(IngredientState.CHOPPED);
-            this.setName("Udang (Chopped)");
-        }
-    }
-
-    @Override public void cook() {
-        // Hanya bisa dimasak kalau SUDAH DIPOTONG
-        if (getState() == IngredientState.CHOPPED) {
-            this.setState(IngredientState.COOKED);
-            this.setName("Udang (Cooked)");
+            setState(IngredientState.COOKING);
+        } else if (getState() == IngredientState.COOKING) {
+            setState(IngredientState.COOKED);
+        } else if (getState() == IngredientState.COOKED) {
+            setState(IngredientState.BURNED);
         }
     }
 }

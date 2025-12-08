@@ -1,56 +1,89 @@
 package nimons.entity.item;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import nimons.entity.item.interfaces.CookingDevice;
 import nimons.entity.item.interfaces.Preparable;
-import nimons.entity.item.IngredientState;
-import java.util.HashSet;
 
 public class FryingPan extends KitchenUtensil implements CookingDevice {
 
-    private boolean isCooking = false;
-    private float timer = 0;
-    private final float COOK_TIME = 12000; 
-    private final float BURN_TIME = 24000; 
+    private int capacity;
 
-    // FIX: Pastikan ada constructor default
     public FryingPan() {
-        this("", 1);
+        this("frying_pan", 2, new HashSet<>());
     }
 
-    public FryingPan(String id, int capacity) {
-        super(id, "Frying Pan", true, new HashSet<>(), capacity);
+    public FryingPan(String id, int capacity, Set<Preparable> contents) {
+        super(id, "Frying Pan", true, contents);
+        this.capacity = capacity;
     }
-    // ... (sisa method sama) ...
+
+    // getters & setters
+    @Override
+    public int capacity() { 
+        return capacity; 
+    }
+    
+    @Override
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(int capacity) { 
+        this.capacity = capacity; 
+    }
+
+    @Override 
+    public boolean isPortable() { 
+        return super.isPortable(); 
+    }
+
+    @Override 
+    public boolean canAccept(Preparable ingredient) { 
+        // Frying pan bisa menerima ingredient jika belum penuh dan ingredient bisa dimasak
+        Set<Preparable> contents = getContents();
+        if (contents == null) {
+            return false;
+        }
+        return contents.size() < capacity && ingredient != null && ingredient.canBeCooked();
+    }
+
+    @Override 
+    public void addIngredient(Preparable ingredient) {
+        if (canAccept(ingredient) && getContents() != null) {
+            getContents().add(ingredient);
+        }
+    }
+
+    @Override 
+    public void startCooking() {
+        // Masak semua ingredient dalam frying pan
+        if (getContents() != null) {
+            for (Preparable ingredient : getContents()) {
+                if (ingredient.canBeCooked()) {
+                    ingredient.cook();
+                }
+            }
+        }
+    }
 
     @Override
     public void update(long deltaTime) {
-        if (isCooking && !getContents().isEmpty()) {
-            timer += deltaTime;
-            if (timer % 1000 < 100) System.out.println(">> Frying Pan: " + (int)(timer/1000) + " detik...");
-            
-            if (timer >= COOK_TIME && timer < BURN_TIME) {
-                 for (Preparable p : getContents()) p.cook();
+        // Update cooking progress for all ingredients
+        if (getContents() != null) {
+            for (Preparable ingredient : getContents()) {
+                if (ingredient.getState() == nimons.entity.item.IngredientState.COOKING) {
+                    // Continue cooking process
+                }
             }
         }
     }
 
     @Override
     public void reset() {
-        this.isCooking = false;
-        this.timer = 0;
-        System.out.println(">> Frying Pan di-reset.");
-    }
-
-    @Override
-    public boolean isCooking() { return isCooking; }
-
-    @Override
-    public boolean canAccept(Preparable ingredient) {
-        // GDD: Frying Pan hanya untuk Ingredient CHOPPED
-        if (ingredient.getState() == IngredientState.CHOPPED) {
-            this.isCooking = true;
-            return true;
+        if (getContents() != null) {
+            getContents().clear();
         }
-        return false;
     }
 }

@@ -4,7 +4,11 @@ import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate;
-import nimons.entity.item.ingredient.*; 
+import nimons.entity.item.ingredient.Cucumber; 
+import nimons.entity.item.ingredient.Fish;
+import nimons.entity.item.ingredient.Nori;
+import nimons.entity.item.ingredient.Rice;
+import nimons.entity.item.ingredient.Shrimp;
 
 /**
  * IngredientStorageStation (I) bertindak sebagai dispenser bahan mentah tak terbatas.
@@ -37,7 +41,7 @@ public class IngredientStorageStation extends Station {
             Plate p = (Plate) itemHand;
             
             // Validasi: Hanya jika piring kosong (belum ada Dish).
-            if (p.getFood() == null) {
+            if (p.getDish() == null) {
                 Item bahanBaru = spawnItem(); // Ambil bahan baru (Stok tak terbatas)
                 
                 // Menggunakan Helper Plating (Wrapper Ingredient -> Dish)

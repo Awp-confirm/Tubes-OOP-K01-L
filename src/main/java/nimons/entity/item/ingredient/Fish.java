@@ -4,22 +4,33 @@ import nimons.entity.item.Ingredient;
 import nimons.entity.item.IngredientState;
 
 public class Fish extends Ingredient {
+
     public Fish() {
-        super("I-Fish", "Ikan", IngredientState.RAW);
+        super("fish", "Fish", IngredientState.RAW);
     }
 
-    @Override public boolean canBeChopped() { return true; }
-    @Override public boolean canBeCooked() { return false; } // Di resep Ikan (Raw)
-    @Override public boolean canBePlacedOnPlate() { return true; }
-
-    @Override public void chop() {
-        if (getState() == IngredientState.RAW) {
-            // Secara teknis masih RAW, tapi bentuk fisik berubah
-            // Kita anggap CHOPPED state mewakili "Sliced Sashimi"
-            this.setState(IngredientState.CHOPPED); 
-            this.setName("Ikan (Raw/Chopped)");
-        }
+    @Override
+    public boolean canBeChopped() {
+        return false; // Fish tidak perlu dipotong untuk sushi
     }
 
-    @Override public void cook() {}
+    @Override
+    public boolean canBeCooked() {
+        return false; // Fish untuk sushi dimakan mentah
+    }
+
+    @Override
+    public boolean canBePlacedOnPlate() {
+        return getState() == IngredientState.RAW;
+    }
+
+    @Override
+    public void chop() {
+        // Fish tidak bisa dipotong
+    }
+
+    @Override
+    public void cook() {
+        // Fish tidak bisa dimasak (untuk sushi)
+    }
 }

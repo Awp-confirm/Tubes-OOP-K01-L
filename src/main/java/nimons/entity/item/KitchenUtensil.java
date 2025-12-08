@@ -1,24 +1,21 @@
 package nimons.entity.item;
 
 import java.util.Set;
+
 import nimons.entity.item.interfaces.Preparable;
 
 public abstract class KitchenUtensil extends Item {
 
     private Set<Preparable> contents;
-    private final int capacity; 
 
-    // FIX #1: Tambahkan kembali constructor kosong
-    public KitchenUtensil() {
-        this("", "", true, null, 1); // Panggil constructor yang sudah ada dengan nilai default
-    }
+    public KitchenUtensil() {}
 
-    public KitchenUtensil(String id, String name, boolean portable, Set<Preparable> contents, int capacity) {
+    public KitchenUtensil(String id, String name, boolean portable, Set<Preparable> contents) {
         super(id, name, portable);
         this.contents = contents;
-        this.capacity = capacity;
     }
 
+    // getters & setters
     public Set<Preparable> getContents() { 
         return contents; 
     }
@@ -27,7 +24,11 @@ public abstract class KitchenUtensil extends Item {
         this.contents = contents; 
     }
     
+    /**
+     * Get capacity of this utensil
+     * Should be overridden by subclasses that have capacity limits
+     */
     public int getCapacity() {
-        return capacity;
+        return Integer.MAX_VALUE; // Default: unlimited capacity
     }
 }
