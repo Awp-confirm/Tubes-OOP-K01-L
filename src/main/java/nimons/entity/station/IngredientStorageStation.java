@@ -41,14 +41,16 @@ public class IngredientStorageStation extends Station {
             Plate p = (Plate) itemHand;
             
             // Validasi: Hanya jika piring kosong (belum ada Dish).
-            if (p.getDish() == null) {
+            // MENGGUNAKAN ALIAS getFood() UNTUK KOMPATIBILITAS:
+            if (p.getFood() == null) { 
                 Item bahanBaru = spawnItem(); // Ambil bahan baru (Stok tak terbatas)
                 
                 // Menggunakan Helper Plating (Wrapper Ingredient -> Dish)
                 processPlating(p, bahanBaru); 
                 // Item tetap di tangan Chef (Plate) setelah plating.
+                log("ACTION", "Plating " + bahanBaru.getName() + " ke piring.");
             } else {
-                 log("FAIL", "Piring sudah berisi Dish.");
+                 log("FAIL", "Piring sudah berisi Dish (" + p.getFood().getName() + ").");
             }
             return;
         }
@@ -66,10 +68,8 @@ public class IngredientStorageStation extends Station {
         }
         
         // SCENARIO 3: DROP ITEM
-        // Jika tangan penuh dan Chef mencoba interact (GDD: Storage bisa untuk menaruh),
-        // tapi dalam konteks ini, kita prioritaskan sebagai SOURCE, bukan tempat taruh.
         if (itemHand != null) {
-            log("INFO", "Tangan penuh. Gunakan Assembly Station untuk menaruh item.");
+            log("INFO", "Tangan penuh. Item tidak bisa ditaruh di Storage.");
         }
     }
     

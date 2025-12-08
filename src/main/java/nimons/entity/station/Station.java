@@ -51,12 +51,13 @@ public abstract class Station {
     /**
      * Helper method untuk menangani logika Plating Universal (The Dish Wrapper).
      * Mengubah Ingredient menjadi Dish sebelum diletakkan di Piring.
+     * MENGGUNAKAN ALIAS PLATE.GETFOOD()/SETFOOD().
      */
     protected void processPlating(Plate piring, Item itemToPlate) {
         if (itemToPlate == null) return;
 
-        // 1. Cek Piring Penuh?
-        if (piring.getDish() != null) {
+        // 1. Cek Piring Penuh? MENGGUNAKAN GETFOOD() ALIAS
+        if (piring.getFood() != null) { 
             log("FAIL", "Piring sudah penuh!");
             return;
         }
@@ -77,8 +78,8 @@ public abstract class Station {
             dishSiapSaji = new Dish("D-" + itemToPlate.getName(), itemToPlate.getName(), components);
         }
 
-        // 3. Masukkan Dish ke Piring
-        piring.setDish(dishSiapSaji);
+        // 3. Masukkan Dish ke Piring MENGGUNAKAN SETFOOD() ALIAS
+        piring.setFood(dishSiapSaji); 
         log("SUCCESS", "Plating " + dishSiapSaji.getName() + " berhasil.");
     }
 }

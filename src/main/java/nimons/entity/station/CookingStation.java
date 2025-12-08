@@ -7,6 +7,7 @@ import nimons.entity.item.KitchenUtensil;
 import nimons.entity.item.Plate; 
 import nimons.entity.item.interfaces.CookingDevice;
 import nimons.entity.item.interfaces.Preparable;
+import nimons.entity.item.Dish; // Diperlukan untuk casting hasil plating
 
 /**
  * CookingStation (R) menangani interaksi Chef dengan kompor/oven.
@@ -34,6 +35,7 @@ public class CookingStation extends Station {
     @Override
     public void update(long deltaTime) {
         if (utensils instanceof CookingDevice) {
+            // CookingDevice.update() akan menangani perpindahan state (RAW -> COOKED -> BURNED)
             ((CookingDevice) utensils).update(deltaTime);
         }
     }
@@ -46,7 +48,7 @@ public class CookingStation extends Station {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
 
-        // Cek: Apakah Utensil sudah terpasang?
+        // --- INTERAKSI DENGAN SPOT KOSONG ---
         if (this.utensils == null) {
             // SCENARIO 4: TARUH UTENSIL (Hand: Panci/Wajan)
             if (itemHand instanceof KitchenUtensil) {
@@ -73,49 +75,54 @@ public class CookingStation extends Station {
 
         // SCENARIO 1: PLATING LANGSUNG DARI KOMPOR (Hand: Piring)
         if (itemHand instanceof Plate) {
-            if (!utensils.getContents().isEmpty()) {
-                // Casting isi Utensil ke Item untuk Helper Plating
-                Item isi = (Item) utensils.getContents().iterator().next();
+            if (utensils.getContents() != null && !utensils.getContents().isEmpty()) {
+                // Utensil.getContents() mengembalikan Set<Preparable>. Kita ambil elemen pertama.
+                Item isi = (Item) utensils.getContents().iterator().next(); 
                 
                 // Menggunakan Helper Plating (Wrapper Ingredient -> Dish)
                 processPlating((Plate) itemHand, isi);
                 
-                // Jika sukses masuk piring, kosongkan Utensil
-                if (((Plate)itemHand).getDish() != null) {
+                // Jika sukses masuk piring (Plate.getFood() tidak null), kosongkan Utensil
+                if (((Plate)itemHand).getFood() != null) { 
                     utensils.getContents().clear();
-                    log("INFO", "Isi Utensil dikosongkan setelah plating.");
-                    // Reset status memasak (misal agar timer tidak jalan lagi)
+                    log("SUCCESS", "Isi Utensil di-plating ke piring.");
+                    
+                    // Reset status memasak (penting agar timer berhenti)
                     if (utensils instanceof CookingDevice) {
                         ((CookingDevice) utensils).reset(); 
                     }
                 }
             } else {
-                log("INFO", "Panci kosong, tidak ada yang bisa di-plating.");
+                log("INFO", utensils.getName() + " kosong, tidak ada yang bisa di-plating.");
             }
             return;
         }
         
         // SCENARIO 2: MASUKKAN BAHAN KE PANCI (Hand: Bahan)
         if (itemHand != null) {
-            // Validasi: Utensil harus bisa menerima bahan, dan tangan harus Preparable
+            // Validasi: Utensil harus CookingDevice, dan tangan harus Preparable
             if (utensils instanceof CookingDevice && itemHand instanceof Preparable) {
                 CookingDevice device = (CookingDevice) utensils;
                 Preparable bahan = (Preparable) itemHand;
                 
+                // Pastikan Utensil masih kosong
                 if (utensils.getContents().isEmpty()) {
-                    // Validasi CRUCIAL: Cek apakah Utensil mau menerima bahan ini? (Boiling Pot vs Timun)
+                    // Validasi CRUCIAL: Cek apakah Utensil mau menerima bahan ini? (Delegate ke CookingDevice.canAccept())
                     if (device.canAccept(bahan)) {
                         utensils.getContents().add(bahan);
                         chef.setInventory(null);
-                        log("ACTION", "Bahan " + ((Item)bahan).getName() + " masuk ke " + utensils.getName());
+                        
+                        // Setelah bahan masuk, Utensil (device) mulai proses internalnya
+                        device.startCooking();
+                        log("ACTION", "Bahan " + ((Item)bahan).getName() + " masuk ke " + utensils.getName() + ". Memasak dimulai.");
                     } else {
-                        log("FAIL", utensils.getName() + " menolak bahan " + ((Item)bahan).getName() + ".");
+                        log("FAIL", utensils.getName() + " menolak bahan " + ((Item)bahan).getName() + " (State/Tipe tidak cocok).");
                     }
                 } else {
-                    log("FAIL", "Panci sedang terisi/memasak.");
+                    log("FAIL", utensils.getName() + " sedang terisi/memasak. Hanya boleh satu bahan.");
                 }
             } else {
-                log("FAIL", "Item ini tidak bisa dimasak atau alat tidak bisa dipakai memasak.");
+                log("FAIL", "Item di tangan tidak bisa dimasak atau Utensil tidak mendukung memasak.");
             }
             return;
         }

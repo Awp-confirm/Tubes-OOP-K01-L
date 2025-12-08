@@ -25,14 +25,19 @@ public class ServingStation extends Station {
         Plate plate;
         float timer;
         // 10 Detik delay
-        public PendingPlate(Plate p) { this.plate = p; this.timer = 10000; } 
+        public PendingPlate(Plate p) { 
+            // Kita gunakan timer dalam milisekon, 10000ms = 10 detik
+            this.plate = p; 
+            this.timer = 10000; 
+        } 
     }
     
     private List<PendingPlate> pendingReturns; // List antrean piring kotor yang tertunda
 
     public ServingStation(String name, Position position) {
         super(name, position);
-        this.orderManager = OrderManager.getInstance();
+        // OrderManager adalah Singleton (diasumsikan)
+        this.orderManager = OrderManager.getInstance(); 
         this.pendingReturns = new ArrayList<>();
     }
 
@@ -58,7 +63,8 @@ public class ServingStation extends Station {
             // Check if 10 seconds has passed
             if (pp.timer <= 0) {
                 // Kembalikan ke storage dan hapus dari antrean
-                plateStorage.addDirtyPlate(pp.plate); // Asumsi method ini ada di PlateStorageStation
+                // ASUMSI: plateStorage.addDirtyPlate(Plate) adalah method yang benar
+                plateStorage.addDirtyPlate(pp.plate); 
                 log("INFO", "Piring kotor dikembalikan ke Storage.");
                 it.remove();
             }
@@ -77,13 +83,10 @@ public class ServingStation extends Station {
         // Scenario: Chef menyerahkan Plate
         if (itemHand instanceof Plate) {
             Plate piring = (Plate) itemHand;
-            Dish masakan = null; 
-
-            // Cek apakah piring berisi Dish
-            if (piring.getDish() instanceof Dish) {
-                masakan = (Dish) piring.getDish();
-            }
             
+            // Ambil Dish menggunakan getFood() alias dari Plate.java
+            Dish masakan = piring.getFood(); 
+
             // Validasi 1: Piring Kosong?
             if (masakan == null) {
                 log("FAIL", "Piring kosong! Hanya Plate yang berisi Dish yang bisa disajikan.");
@@ -97,27 +100,27 @@ public class ServingStation extends Station {
 
             if (orderMatch) {
                 log("SUCCESS", "Pesanan Benar! Score bertambah.");
-                // Logic Score Update (Jika ada)
+                // TODO: Panggil ScoreManager.addScore(masakan);
             } else {
                 log("FAIL", "Salah pesanan! Dish tidak cocok dengan Order.");
-                // Makanan hilang 
             }
             
             // --- LOGIKA PENGEMBALIAN PIRING KOTOR (DELAY) ---
             
-            // 1. Bersihkan piring dan set status kotor
-            piring.setDish(null); 
+            // 1. Bersihkan Dish dari piring (Menghapus makanan)
+            piring.setFood(null); 
+            // 2. Set status piring menjadi kotor
             piring.setClean(false); 
 
-            // 2. Hapus dari tangan Chef
+            // 3. Hapus dari tangan Chef
             chef.setInventory(null); 
 
-            // 3. Masukkan ke antrean delay 10 detik
+            // 4. Masukkan ke antrean delay 10 detik
             if (plateStorage != null) {
                 pendingReturns.add(new PendingPlate(piring));
                 log("INFO", "Piring akan kembali ke storage dalam 10 detik.");
             } else {
-                 log("ERROR", "Plate Storage belum disambungkan!");
+                log("ERROR", "Plate Storage belum disambungkan!");
             }
         } else {
             log("INFO", "Hanya Plate yang bisa disajikan.");

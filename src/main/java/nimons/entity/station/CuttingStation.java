@@ -2,10 +2,10 @@ package nimons.entity.station;
 
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
-import nimons.entity.item.IngredientState;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate;
-import nimons.entity.item.interfaces.Preparable; // Import yang benar
+import nimons.entity.item.interfaces.Preparable;
+// Import IngredientState tidak lagi diperlukan di sini karena logic dipindah ke Ingredient
 
 /**
  * CuttingStation (C) menangani pemotongan bahan (RAW -> CHOPPED).
@@ -23,27 +23,53 @@ public class CuttingStation extends Station {
     }
 
     /**
+     * Getter untuk item yang diletakkan di atas Cutting Station (Keperluan GUI).
+     */
+    public Item getPlacedItem() { return placedItem; }
+
+    /**
      * Menangani progress timer pemotongan.
      */
     @Override
     public void update(long deltaTime) {
         // Logic Timer Berjalan: Hanya jika ada Chef yang berinteraksi dan barangnya Preparable.
         if (currentCutter != null && placedItem instanceof Preparable) {
-            currentProgress += deltaTime;
+            Preparable p = (Preparable) placedItem;
+            
+            // Validasi: Pastikan item masih bisa dipotong saat update berjalan
+            // (Mencegah error jika item sudah selesai di-chop di loop update sebelumnya)
+            // Menggunakan canBeChopped() dari Ingredient adalah KUNCI.
+            if (p.canBeChopped()) {
+                currentProgress += deltaTime;
+            } else {
+                // Item sudah selesai atau tidak bisa dipotong lagi, hentikan timer
+                finishCutting();
+                return;
+            }
 
             if (currentProgress >= REQUIRED_TIME) {
-                // 1. Ubah state bahan (RAW -> CHOPPED)
-                ((Preparable) placedItem).chop();
+                // 1. Ubah state bahan (RAW -> CHOPPED) - Logic ada di Ingredient
+                p.chop();
                 
-                // 2. Lepaskan Chef (Un-freeze)
-                currentCutter.setBusy(false);
-                currentCutter = null;
-                currentProgress = 0; // Reset progress
-                
-                log("SUCCESS", "Item selesai dipotong: " + placedItem.getName());
+                // 2. Selesaikan proses (Lepaskan Chef)
+                finishCutting();
             }
         }
     }
+    
+    /** Helper untuk mereset state setelah pemotongan selesai/batal */
+    private void finishCutting() {
+        if (currentCutter != null) {
+            log("SUCCESS", "Item selesai dipotong: " + placedItem.getName());
+            currentCutter.setBusy(false);
+        } else {
+            // Jika dipanggil dari update karena canBeChopped() false
+            log("INFO", "Pemotongan berhenti: Item sudah mencapai state akhir.");
+        }
+        currentCutter = null;
+        currentProgress = 0; // Reset progress untuk interaksi berikutnya
+    }
+
 
     /**
      * Menangani interaksi Chef (Plating, Drop, Cut, Pick Up).
@@ -57,14 +83,18 @@ public class CuttingStation extends Station {
         // Hand: Plate, Table: Item
         if (itemHand instanceof Plate && placedItem != null) {
             processPlating((Plate) itemHand, placedItem);
-            // Jika plating sukses (piring ada isinya), hapus item dari meja
-            if (((Plate)itemHand).getDish() != null) placedItem = null;
+            // Jika plating sukses, hapus item dari meja
+            // Note: Menggunakan getFood() karena Plate.java menggunakan alias getFood().
+            if (((Plate)itemHand).getFood() != null) placedItem = null; 
             return;
         }
 
         // SCENARIO 2: TARUH ITEM (Drop)
         // Hand: Item, Table: Empty
         if (itemHand != null && placedItem == null) {
+            // Jika sedang ada Chef yang memotong (dari sesi sebelumnya), hentikan dulu
+            if (currentCutter != null) finishCutting(); 
+            
             log("ACTION", "Menaruh " + itemHand.getName());
             placedItem = itemHand;
             chef.setInventory(null);
@@ -73,20 +103,20 @@ public class CuttingStation extends Station {
         }
         
         // SCENARIO 3: AKSI MEMOTONG (Chop) - PRIORITAS TINGGI
-        // Syarat: Tangan kosong, Item ada, dan Item masih RAW
+        // Syarat: Tangan kosong, Item ada, Item dapat dipotong (Validasi Delegated)
         if (itemHand == null && placedItem instanceof Preparable) {
             Preparable p = (Preparable) placedItem;
             
-            // Validasi: Hanya boleh memotong bahan mentah (RAW)
-            if (p.getState() == IngredientState.RAW) {
+            // Validasi: Delegasi ke Ingredient (Nori=false, Cucumber=true, Rice=false)
+            if (p.canBeChopped()) {
                 // START CUTTING / RESUME
                 this.currentCutter = chef;
                 chef.setBusy(true); // BEKUKAN CHEF (Busy State)
-                log("ACTION", "Mulai memotong...");
-                return; // Keluar dari method agar tidak langsung Pick Up
+                log("ACTION", "Mulai memotong " + placedItem.getName() + "...");
+                return; 
             } else {
-                // Jika sudah Cooked/Chopped, Chef tidak melakukan apa-apa (akan jatuh ke Pick Up)
-                log("INFO", "Item ini tidak perlu dipotong.");
+                // Item tidak bisa dipotong (misal: Nori, atau Cucumber yang sudah CHOPPED)
+                log("INFO", placedItem.getName() + " tidak dapat dipotong atau sudah dipotong.");
             }
         }
         
@@ -102,14 +132,10 @@ public class CuttingStation extends Station {
         // SCENARIO 5: BATALKAN/PAUSE (Safety)
         // Jika Chef sedang busy karena memotong dan berinteraksi lagi (Spasi)
         if (chef.isBusy() && chef == currentCutter) {
-            chef.setBusy(false);
+            // Hentikan proses, progress tetap tersimpan
+            log("INFO", "Berhenti memotong (Progress tersimpan: " + (int)currentProgress + "ms).");
+            currentCutter.setBusy(false);
             currentCutter = null;
-            log("INFO", "Berhenti memotong (Progress tersimpan).");
         }
     }
-    
-    /**
-     * Getter untuk item yang diletakkan di atas Cutting Station (Keperluan GUI).
-     */
-    public Item getPlacedItem() { return placedItem; }
 }

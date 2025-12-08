@@ -31,10 +31,11 @@ public class TrashStation extends Station {
             if (itemHand instanceof KitchenUtensil) {
                 KitchenUtensil panci = (KitchenUtensil) itemHand;
                 
-                if (!panci.getContents().isEmpty()) {
+                // Pastikan contents tidak null sebelum dicek isEmpty()
+                if (panci.getContents() != null && !panci.getContents().isEmpty()) { 
                     panci.getContents().clear(); // Hapus semua isi (bahan/dish)
                     
-                    // Reset Status Masak (misal, mematikan timer)
+                    // Reset Status Masak (mematikan timer, dsb.)
                     if (panci instanceof CookingDevice) {
                         ((CookingDevice) panci).reset();
                     }
@@ -45,7 +46,7 @@ public class TrashStation extends Station {
                 return; // Utensil tetap di tangan Chef setelah dibersihkan
             }
 
-            // Scenario 2: Item Biasa (Ingredient, Dish, Plate Kosong)
+            // Scenario 2: Item Biasa (Ingredient, Dish, Plate Kotor)
             String itemName = itemHand.getName();
             chef.setInventory(null);
             log("SUCCESS", "Item " + itemName + " dibuang.");

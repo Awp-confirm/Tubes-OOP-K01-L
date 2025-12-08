@@ -33,13 +33,10 @@ public class WashingStation extends Station {
      */
     @Override
     public void update(long deltaTime) {
-        // Hanya jalan jika ada Chef yang berinteraksi
+        // Hanya jalan jika ada Chef yang sedang mencuci piring
         if (currentWasher != null && plateInWash != null) {
             currentProgress += deltaTime;
             
-            // Optional: Log progress (misal setiap detik)
-            // if (currentProgress % 1000 < 100) log("PROGRESS", "Washing... " + (int)(currentProgress/1000) + "s");
-
             if (currentProgress >= REQUIRED_TIME) {
                 finishWashing();
             }
@@ -54,6 +51,15 @@ public class WashingStation extends Station {
     public void onInteract(Chef chef) {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
+        
+        // SCENARIO 4: BATALKAN/PAUSE CUCI (Safety - Interaksi ulang saat busy)
+        // Kita letakkan ini di awal agar interaksi Chef (Spacebar kedua) langsung menghentikan proses.
+        if (chef.isBusy() && chef == currentWasher) {
+            chef.setBusy(false);
+            currentWasher = null;
+            log("INFO", "Proses mencuci dihentikan (Progress tersimpan: " + (int)currentProgress + "ms).");
+            return;
+        }
 
         // SCENARIO 1: DROP DIRTY PLATE
         if (itemHand instanceof Plate) {
@@ -69,21 +75,26 @@ public class WashingStation extends Station {
         }
 
         // SCENARIO 2: PICK UP CLEAN PLATE
-        if (itemHand == null && !cleanPlates.isEmpty() && currentWasher == null) {
-            // Hanya bisa ambil jika tangan kosong dan proses cuci tidak sedang aktif/dimulai
-            Plate p = cleanPlates.pop();
-            chef.setInventory(p);
-            log("ACTION", "Mengambil piring bersih. Sisa bersih: " + cleanPlates.size());
+        if (itemHand == null && !cleanPlates.isEmpty()) { 
+            // Ambil piring bersih hanya jika tangan kosong dan proses cuci tidak sedang aktif/dimulai oleh Chef lain
+            // currentWasher == null sudah cukup karena SCENARIO 4 sudah menghandle pause chef sendiri
+            if (currentWasher == null) { 
+                Plate p = cleanPlates.pop();
+                chef.setInventory(p);
+                log("ACTION", "Mengambil piring bersih. Sisa bersih: " + cleanPlates.size());
+            } else {
+                log("INFO", "Sedang ada Chef lain yang mencuci.");
+            }
             return;
         }
 
-        // SCENARIO 3: START/RESUME/CANCEL WASHING
+        // SCENARIO 3: START/RESUME WASHING
         if (itemHand == null) {
             
             // a. Jika slot cuci kosong, muat piring dari tumpukan kotor
             if (plateInWash == null && !dirtyPlates.isEmpty()) {
                 plateInWash = dirtyPlates.pop(); // Ambil dari tumpukan kotor
-                // currentProgress tetap sama jika logic resume dipanggil (tapi karena pop, kita anggap baru)
+                // Catatan: currentProgress = 0 jika pop, atau progress tersimpan jika Chef sebelumnya pause
             }
             
             // b. Mulai/Lanjut cuci jika ada piring di slot
@@ -96,11 +107,9 @@ public class WashingStation extends Station {
             }
         }
         
-        // SCENARIO 4: BATALKAN/PAUSE CUCI (Safety - Interaksi ulang saat busy)
-        if (chef.isBusy() && chef == currentWasher) {
-            chef.setBusy(false);
-            currentWasher = null;
-            log("INFO", "Proses mencuci dihentikan (Progress tersimpan: " + (int)currentProgress + "ms).");
+        // Jika tangan kosong, tidak ada piring bersih, dan tidak ada piring kotor/slot cuci kosong
+        if (itemHand == null) {
+            log("INFO", "Tidak ada piring kotor yang bisa dicuci.");
         }
     }
 
@@ -109,7 +118,7 @@ public class WashingStation extends Station {
      */
     private void finishWashing() {
         if (plateInWash != null) {
-            plateInWash.setClean(true); // Ubah status jadi bersih
+            plateInWash.setClean(true); // Ubah status jadi bersih (Kompatibel dengan Plate.java)
             cleanPlates.push(plateInWash); // Pindah ke tumpukan bersih
             
             log("SUCCESS", "Piring menjadi bersih!");
@@ -126,7 +135,7 @@ public class WashingStation extends Station {
         }
     }
 
-    // Getter untuk status
+    // Getter untuk status (Keperluan GUI/Debug)
     public int getDirtyCount() { return dirtyPlates.size(); }
     public int getCleanCount() { return cleanPlates.size(); }
 }
