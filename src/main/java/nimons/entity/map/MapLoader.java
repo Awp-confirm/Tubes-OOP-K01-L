@@ -140,7 +140,6 @@ public class MapLoader {
                         break;
 
                     default:
-                        // karakter tidak dikenal, sementara anggap floor
                         break;
                 }
 
