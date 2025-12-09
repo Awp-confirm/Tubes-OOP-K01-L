@@ -30,6 +30,7 @@ import nimons.entity.station.PlateStorageStation;
 import nimons.entity.station.ServingStation;
 import nimons.entity.station.Station;
 import nimons.entity.station.WashingStation;
+import nimons.logic.GameState;
 
 public class GameScreen {
 
@@ -75,6 +76,9 @@ public class GameScreen {
     private double menuMainMenuButtonWidth = 0;
     private double menuMainMenuButtonHeight = 0;
     
+    // Game state (timer and score)
+    private GameState gameState;
+    
     // Asset images
     private Image floorImage;
     private Image wallImage;
@@ -88,6 +92,9 @@ public class GameScreen {
         this.gc = canvas.getGraphicsContext2D();
         
         rootPane.getChildren().add(canvas);
+        
+        // Initialize game state (5 minutes timer, pass threshold 1000 points)
+        this.gameState = new GameState(300, 1000);
         
         // Load assets
         loadAssets();
@@ -268,6 +275,15 @@ public class GameScreen {
     }
 
     private void update(long deltaTime) {
+        // Check if game is over
+        if (gameState.isGameOver()) {
+            showResultScreen();
+            return;
+        }
+        
+        // Update game state
+        gameState.update();
+        
         // Skip update jika game di-pause
         if (isPaused) {
             return;
@@ -376,6 +392,9 @@ public class GameScreen {
         if (chef2 != null) {
             drawChef(chef2, offsetX, offsetY, chef2 == activeChef);
         }
+        
+        // Render game UI (timer and score)
+        renderGameUI();
         
         // Render pause menu jika game di-pause
         if (isPaused) {
@@ -703,6 +722,9 @@ public class GameScreen {
         isPaused = !isPaused;
         if (isPaused) {
             pauseStartTime = System.currentTimeMillis();
+            gameState.pause();
+        } else {
+            gameState.resume();
         }
     }
     
@@ -776,5 +798,46 @@ public class GameScreen {
         gc.setFont(Font.font("Arial", 18));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText(text, x + width / 2, y + height / 2 + 6);
+    }
+    
+    private void renderGameUI() {
+        // Draw score at top right
+        double scoreX = WINDOW_WIDTH - 30;
+        double scoreY = 50;
+        
+        int currentScore = gameState.getScore().getCurrentScore();
+        
+        gc.setFill(Color.web("#F2C38F"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 24));
+        gc.setTextAlign(javafx.scene.text.TextAlignment.RIGHT);
+        gc.fillText("Score", scoreX, scoreY);
+        
+        gc.setFill(Color.web("#E8A36B"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 48));
+        gc.fillText(String.valueOf(currentScore), scoreX, scoreY + 50);
+        
+        // Draw timer at bottom right (simple time display only)
+        double timerX = WINDOW_WIDTH - 30;
+        double timerY = WINDOW_HEIGHT - 30;
+        
+        String timeText = gameState.getTimer().getFormattedRemainingTime();
+        gc.setFill(Color.web("#E8A36B"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 40));
+        gc.setTextAlign(javafx.scene.text.TextAlignment.RIGHT);
+        gc.fillText(timeText, timerX, timerY);
+    }
+    
+    private void showResultScreen() {
+        // Stop the game loop
+        gameLoop.stop();
+        
+        // Show result screen
+        ResultScreen resultScreen = new ResultScreen(
+            stage,
+            gameState.getScore().getCurrentScore(),
+            gameState.isPassed(),
+            gameState.getPassThreshold()
+        );
+        resultScreen.start();
     }
 }
