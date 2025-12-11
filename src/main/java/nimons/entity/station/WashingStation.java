@@ -1,41 +1,98 @@
 package nimons.entity.station;
 
+import java.util.Stack;
+
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate; 
 
-import java.util.Stack; 
-
 /**
- * WashingStation (W) berfungsi untuk membersihkan piring kotor.
- * Logika utama: Busy State (Chef beku), Timer (3 detik), dan Progress yang tersimpan.
+ * WashingStation (W): Menangani pencucian piring kotor.
+ * Mode: SINK (Input/Cuci) dan RACK (Output/Simpan Bersih).
+ * Constraint: Menggunakan Busy State (Chef di-freeze selama durasi mencuci).
  */
 public class WashingStation extends Station {
-
-    private Stack<Plate> dirtyPlates; // Tumpukan piring kotor (Input)
-    private Stack<Plate> cleanPlates; // Tumpukan piring bersih (Output)
     
-    // Timer dan Progress
-    private Plate plateInWash; // Piring yang sedang dicuci (dedicated slot)
-    private float currentProgress = 0;
-    private final float REQUIRED_TIME = 3000; // 3 Detik per piring
-    private Chef currentWasher; // Menyimpan referensi Chef yang sedang mencuci
+    public enum WashingMode { SINK, RACK }
+    private WashingMode mode; 
+    private WashingStation outputRackReference; 
 
-    public WashingStation(String name, Position position) {
+    private Stack<Plate> dirtyPlates; 
+    private Stack<Plate> cleanPlates; 
+    
+    private Plate plateInWash; 
+    private float currentProgress = 0;
+    private final float REQUIRED_TIME = 3000; 
+    
+    // --- FIELD UNTUK BUSY STATE ---
+    private Chef currentWasher; 
+    // ----------------------------
+    
+    private float logTimer = 0; // Mengembalikan timer log untuk update progress bar
+    private final float LOG_INTERVAL = 1000; 
+
+
+    public WashingStation(String name, Position position, WashingMode mode) {
         super(name, position);
+        this.mode = mode;
         this.dirtyPlates = new Stack<>();
         this.cleanPlates = new Stack<>();
+        
+        log("INIT", "Station mode: " + mode.toString());
     }
-
+    
+    // --- Getters untuk Progress Bar (Progress 0.0 - 1.0) ---
+    
+    @Override
+    public float getProgressRatio() {
+        // Mengembalikan progress ratio (0.0 - 1.0) berdasarkan currentProgress
+        if (REQUIRED_TIME == 0 || plateInWash == null || currentWasher == null) {
+            return 0.0f;
+        }
+        return Math.min(1.0f, currentProgress / REQUIRED_TIME);
+    }
+    
+    @Override
+    public boolean isActive() {
+        // Aktif hanya jika Chef sedang Busy mencuci (progress > 0 dan belum selesai)
+        return getProgressRatio() > 0.0f && getProgressRatio() < 1.0f;
+    }
+    // -------------------------------------------------------
+    
+    public WashingMode getMode() { return mode; }
+    public void setMode(WashingMode newMode) { 
+        this.mode = newMode;
+        log("INIT", "Mode changed to: " + newMode.toString());
+    }
+    public void setOutputRack(WashingStation rack) {
+        if (this.mode == WashingMode.SINK) {
+            this.outputRackReference = rack;
+            log("INIT", "Sink linked to Rack at " + rack.getPosition());
+        } else {
+            System.err.println("ERROR: Only SINK can be linked to Output Rack.");
+        }
+    }
+    
     /**
-     * Update loop: Menangani progress timer mencuci piring.
+     * Update loop: Memajukan timer pencucian jika Chef sedang Busy.
      */
     @Override
     public void update(long deltaTime) {
-        // Hanya jalan jika ada Chef yang sedang mencuci piring
+        if (mode != WashingMode.SINK) return;
+        
+        // Timer hanya berjalan jika Chef sedang mencuci
         if (currentWasher != null && plateInWash != null) {
             currentProgress += deltaTime;
+            
+            // Log progress (optional, bisa dihapus jika tidak ingin ada log per detik)
+            if (logTimer >= LOG_INTERVAL) {
+                int percentage = (int)(getProgressRatio() * 100);
+                log("TIMER", "WASHING: Progress " + percentage + "%.");
+                logTimer = 0;
+            } else {
+                logTimer += deltaTime;
+            }
             
             if (currentProgress >= REQUIRED_TIME) {
                 finishWashing();
@@ -44,87 +101,90 @@ public class WashingStation extends Station {
     }
 
     /**
-     * Mengatur interaksi Chef dengan Washing Station.
-     * Skenario: Menaruh piring kotor, Mengambil piring bersih, dan Memulai/Menghentikan cuci.
+     * Mengatur interaksi Chef dengan Washing Station (SINK/RACK).
      */
     @Override
     public void onInteract(Chef chef) {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
         
-        // SCENARIO 4: BATALKAN/PAUSE CUCI (Safety - Interaksi ulang saat busy)
-        // Kita letakkan ini di awal agar interaksi Chef (Spacebar kedua) langsung menghentikan proses.
+        if (mode == WashingMode.RACK) {
+            // LOGIKA RACK (Output): Mengambil piring bersih
+            if (itemHand == null && !cleanPlates.isEmpty()) { 
+                Plate p = cleanPlates.pop();
+                chef.setInventory(p);
+                log("ACTION", "TAKEN: Clean Plate from RACK (Remaining: " + cleanPlates.size() + ").");
+            } else {
+                log("INFO", "Rack is empty or Chef's hands are full.");
+            }
+            return;
+        }
+
+        // --- LOGIKA SINK ---
+
+        // SCENARIO 4: BATALKAN/PAUSE CUCI (Hanya jika Chef Busy di SINK ini)
         if (chef.isBusy() && chef == currentWasher) {
             chef.setBusy(false);
             currentWasher = null;
-            log("INFO", "Proses mencuci dihentikan (Progress tersimpan: " + (int)currentProgress + "ms).");
+            log("INFO", "PAUSED: Washing stopped (Progress kept: " + (int)currentProgress + "ms).");
             return;
         }
 
-        // SCENARIO 1: DROP DIRTY PLATE
+        // SCENARIO 1: DROP DIRTY PLATE (Input)
         if (itemHand instanceof Plate) {
             Plate p = (Plate) itemHand;
             if (!p.isClean()) {
-                dirtyPlates.push(p); // Piring kotor masuk antrean
+                dirtyPlates.push(p); 
                 chef.setInventory(null);
-                log("ACTION", "Menumpuk piring kotor. Antrean: " + dirtyPlates.size());
+                log("ACTION", "DROPPED: Dirty Plate into SINK (Queue: " + dirtyPlates.size() + ").");
             } else {
-                log("FAIL", "Piring sudah bersih. Tidak perlu dicuci!");
+                log("FAIL", "WASH REJECTED: Plate is already clean.");
             }
             return;
         }
 
-        // SCENARIO 2: PICK UP CLEAN PLATE
-        if (itemHand == null && !cleanPlates.isEmpty()) { 
-            // Ambil piring bersih hanya jika tangan kosong dan proses cuci tidak sedang aktif/dimulai oleh Chef lain
-            // currentWasher == null sudah cukup karena SCENARIO 4 sudah menghandle pause chef sendiri
-            if (currentWasher == null) { 
-                Plate p = cleanPlates.pop();
-                chef.setInventory(p);
-                log("ACTION", "Mengambil piring bersih. Sisa bersih: " + cleanPlates.size());
-            } else {
-                log("INFO", "Sedang ada Chef lain yang mencuci.");
-            }
-            return;
-        }
-
-        // SCENARIO 3: START/RESUME WASHING
+        // SCENARIO 3: START/RESUME WASHING (di SINK)
         if (itemHand == null) {
-            
-            // a. Jika slot cuci kosong, muat piring dari tumpukan kotor
             if (plateInWash == null && !dirtyPlates.isEmpty()) {
-                plateInWash = dirtyPlates.pop(); // Ambil dari tumpukan kotor
-                // Catatan: currentProgress = 0 jika pop, atau progress tersimpan jika Chef sebelumnya pause
+                plateInWash = dirtyPlates.pop(); 
             }
             
-            // b. Mulai/Lanjut cuci jika ada piring di slot
             if (plateInWash != null) {
-                // Set Busy State dan mulai timer di update()
+                // Pastikan outputRackReference sudah diset sebelum mulai
+                if (outputRackReference == null) {
+                    log("ERROR", "Washing Rack is not connected!");
+                    return;
+                }
+                
+                // Mulai Busy State (Chef freeze)
                 this.currentWasher = chef;
                 chef.setBusy(true); 
-                log("ACTION", "Chef mulai menggosok piring... (Progress tersimpan: " + (int)currentProgress + "ms)");
+                log("ACTION", "START WASHING: Chef starts cleaning plate (Progress: " + (int)currentProgress + "ms).");
                 return;
             }
         }
         
-        // Jika tangan kosong, tidak ada piring bersih, dan tidak ada piring kotor/slot cuci kosong
         if (itemHand == null) {
-            log("INFO", "Tidak ada piring kotor yang bisa dicuci.");
+            log("INFO", "No dirty plates available to start washing.");
         }
     }
 
     /**
-     * Menyelesaikan proses cuci: Pindahkan piring dari slot cuci ke tumpukan bersih.
+     * Menyelesaikan proses cuci: Pindahkan piring ke RACK secara OTOMATIS dan melepas Chef.
      */
     private void finishWashing() {
         if (plateInWash != null) {
-            plateInWash.setClean(true); // Ubah status jadi bersih (Kompatibel dengan Plate.java)
-            cleanPlates.push(plateInWash); // Pindah ke tumpukan bersih
+            plateInWash.setClean(true); 
             
-            log("SUCCESS", "Piring menjadi bersih!");
+            if (outputRackReference != null) {
+                outputRackReference.addCleanPlateToRack(plateInWash); 
+                log("SUCCESS", "CLEANED: Plate is clean and sent to RACK.");
+            } else {
+                log("ERROR", "CLEAN PLATE LOST: Output Rack is missing.");
+            }
         }
         
-        // Reset state
+        // Reset state SINK
         this.currentProgress = 0;
         this.plateInWash = null;
         
@@ -134,8 +194,15 @@ public class WashingStation extends Station {
             currentWasher = null;
         }
     }
-
-    // Getter untuk status (Keperluan GUI/Debug)
-    public int getDirtyCount() { return dirtyPlates.size(); }
-    public int getCleanCount() { return cleanPlates.size(); }
+    
+    /**
+     * Method internal untuk menerima Plate Bersih (Hanya di RACK).
+     */
+    public void addCleanPlateToRack(Plate p) {
+        if (mode == WashingMode.RACK && p.isClean()) {
+            cleanPlates.push(p);
+        } else {
+            System.err.println("ERROR: Attempted to store wrong item type in Washing RACK.");
+        }
+    }
 }

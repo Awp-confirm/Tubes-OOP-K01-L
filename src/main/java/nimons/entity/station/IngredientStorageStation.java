@@ -3,56 +3,91 @@ package nimons.entity.station;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
+import nimons.entity.item.KitchenUtensil;
 import nimons.entity.item.Plate;
 import nimons.entity.item.ingredient.Cucumber; 
 import nimons.entity.item.ingredient.Fish;
 import nimons.entity.item.ingredient.Nori;
 import nimons.entity.item.ingredient.Rice;
 import nimons.entity.item.ingredient.Shrimp;
+import nimons.entity.item.interfaces.Preparable;
 
 /**
- * IngredientStorageStation (I) bertindak sebagai dispenser bahan mentah tak terbatas.
- * Juga memungkinkan Plating langsung dari storage jika Chef memegang Plate.
+ * IngredientStorageStation (I): Bertindak sebagai dispenser bahan mentah tak terbatas.
+ * Chef dapat mengambil bahan (Pick Up) atau Plating langsung (Hand: Plate).
  */
 public class IngredientStorageStation extends Station {
     
-    private Item storedItem; // Dummy item (untuk display GUI)
-
-    public IngredientStorageStation(String name, Position position) {
-        super(name, position);
-        // Setup dummy item berdasarkan nama crate (diperlukan untuk GUI)
-        if (name.contains("Rice")) storedItem = new Rice();
-        else if (name.contains("Nori")) storedItem = new Nori();
-        else if (name.contains("Cucumber")) storedItem = new Cucumber();
-        else if (name.contains("Shrimp")) storedItem = new Shrimp();
-        else if (name.contains("Fish")) storedItem = new Fish();
-    }
+    private Item storedItem; // Dummy item (untuk display GUI dan menentukan tipe bahan yang didispense)
 
     /**
-     * Menangani interaksi Chef (Mengambil Bahan atau Plating).
+     * CONSTRUCTOR: Menetapkan tipe bahan berdasarkan koordinat X dan Y di peta.
      */
+    public IngredientStorageStation(String name, Position position) {
+        super(name, position);
+        
+        final int x = position.getX();
+        final int y = position.getY();
+
+        // --- LOGIC MAPPING POSISI KE ITEM ---
+        if (x == 0) { 
+            // Kolom Kiri Peta (0)
+            if (y == 3) storedItem = new Rice(); 
+            else if (y == 4) storedItem = new Nori(); 
+            else if (y == 5) storedItem = new Cucumber();
+        } 
+        else if (x == 13) { 
+            // Kolom Kanan Peta (13)
+            if (y == 3) storedItem = new Fish(); 
+            else if (y == 4) storedItem = new Shrimp(); 
+            else if (y == 5) storedItem = new Cucumber();
+        } 
+        
+        // --- LOGIC FALLBACK DAN PENAMAAN AKHIR ---
+        String itemName = storedItem != null ? storedItem.getName() : "UNDEFINED";
+        
+        if (storedItem == null) {
+            // Fallback: Jika posisi tidak terdeteksi
+            storedItem = new Nori();
+            itemName = "Nori_FALLBACK"; 
+        }
+        
+        // Set nama yang benar (misal: Rice Storage) untuk logging
+        this.name = storedItem.getName() + " Storage";
+
+        // --- DEBUGGING LOG PENTING (DI TERMINAL) ---
+        System.out.println("DEBUG I: Membuat " + itemName + " di Posisi: (" + x + ", " + y + ")");
+    }
+    
     @Override
     public void onInteract(Chef chef) {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
 
+        // --- SCENARIO KRITIS BARU: PLATING UTENSIL $\rightarrow$ PIRING DI TANGAN ---
+        // Blokir semua logic Utensil di Storage, karena Storage hanya untuk mengambil bahan.
+        if (itemHand instanceof KitchenUtensil && this.storedItem instanceof Preparable) {
+            log("FAIL", "Ingredient Storage hanya untuk mengambil bahan mentah.");
+            return; 
+        }
+
         // SCENARIO 1: PLATING LANGSUNG DARI STORAGE (Hand: Plate)
         if (itemHand instanceof Plate) {
             Plate p = (Plate) itemHand;
             
-            // Validasi: Hanya jika piring kosong (belum ada Dish).
-            // MENGGUNAKAN ALIAS getFood() UNTUK KOMPATIBILITAS:
             if (p.getFood() == null) { 
-                Item bahanBaru = spawnItem(); // Ambil bahan baru (Stok tak terbatas)
+                Item bahanBaru = spawnItem(); 
                 
-                // Menggunakan Helper Plating (Wrapper Ingredient -> Dish)
-                processPlating(p, bahanBaru); 
-                // Item tetap di tangan Chef (Plate) setelah plating.
-                log("ACTION", "Plating " + bahanBaru.getName() + " ke piring.");
+                if (bahanBaru != null) {
+                    processPlating(p, bahanBaru); // Memanggil Plating dari Base Class
+                    log("ACTION", "PLATED: " + bahanBaru.getName() + " langsung ke piring.");
+                } else {
+                    log("FAIL", "Cannot instantiate item type: " + this.name + ".");
+                }
             } else {
-                 log("FAIL", "Piring sudah berisi Dish (" + p.getFood().getName() + ").");
+                log("FAIL", "Plate is occupied by Dish (" + p.getFood().getName() + ").");
             }
-            return;
+            return; 
         }
 
         // SCENARIO 2: AMBIL BAHAN (Hand: Kosong)
@@ -60,35 +95,29 @@ public class IngredientStorageStation extends Station {
             Item bahanBaru = spawnItem();
             if (bahanBaru != null) {
                 chef.setInventory(bahanBaru);
-                log("ACTION", "Mengambil " + bahanBaru.getName());
+                log("ACTION", "TAKEN: " + bahanBaru.getName() + " picked up.");
             } else {
-                log("FAIL", "Tipe bahan tidak teridentifikasi.");
+                log("FAIL", "Cannot instantiate item type: " + this.name + ".");
             }
             return;
         }
         
-        // SCENARIO 3: DROP ITEM
+        // SCENARIO 3: DROP ITEM (Jika tangan penuh dan bukan Plate)
         if (itemHand != null) {
-            log("INFO", "Tangan penuh. Item tidak bisa ditaruh di Storage.");
+            log("INFO", "Hand is full. Storage only dispenses ingredients.");
+            return;
         }
     }
     
-    /**
-     * Helper method untuk membuat instance baru dari Ingredient yang disimpan.
-     * Stok dianggap tak terbatas (infinite spawn).
-     */
+    /** Menginstansiasi objek Item baru dari tipe yang tersimpan (Dispenser). */
     private Item spawnItem() {
-        // Mengembalikan instance baru (cloning)
-        if (name.contains("Rice")) return new Rice();
-        if (name.contains("Nori")) return new Nori();
-        if (name.contains("Cucumber")) return new Cucumber();
-        if (name.contains("Shrimp")) return new Shrimp();
-        if (name.contains("Fish")) return new Fish();
-        return null;
+        if (storedItem instanceof Rice) return new Rice();
+        if (storedItem instanceof Nori) return new Nori();
+        if (storedItem instanceof Cucumber) return new Cucumber();
+        if (storedItem instanceof Shrimp) return new Shrimp();
+        if (storedItem instanceof Fish) return new Fish();
+        return null; 
     }
 
-    /**
-     * Getter untuk item dummy (Keperluan display GUI).
-     */
     public Item getPlacedItem() { return storedItem; }
 }

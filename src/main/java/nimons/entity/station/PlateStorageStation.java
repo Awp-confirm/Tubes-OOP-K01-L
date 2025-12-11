@@ -1,33 +1,49 @@
 package nimons.entity.station;
 
+import java.util.Stack;
+
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate;
-import java.util.Stack;
 
 /**
- * PlateStorageStation (P) menangani tumpukan Plate bersih dan kotor (Stack LIFO).
- * Logic utama adalah manajemen stack dan restriksi pengambilan Plate bersih.
+ * PlateStorageStation (P): Menangani tumpukan Plate bersih dan kotor (Stack LIFO).
+ * Menggunakan pola Singleton agar dapat diakses oleh ServingStation tanpa Dependency Injection manual.
  */
 public class PlateStorageStation extends Station {
 
-    private Stack<Plate> plates; // Tumpukan piring
+    // --- Singleton Fields ---
+    private static PlateStorageStation instance;
+    
+    private Stack<Plate> plates; 
+    private final int INITIAL_STOCK = 5;
 
     public PlateStorageStation(String name, Position position) {
         super(name, position);
+        
+        // Memastikan hanya satu instance yang dibuat (Singleton)
+        if (instance == null) {
+            instance = this;
+        } else {
+            System.err.println("WARNING: Multiple PlateStorageStation created! Using the first instance.");
+        }
+        
         this.plates = new Stack<>();
         
-        // Isi stok awal piring (5 piring bersih)
-        for (int i = 0; i < 5; i++) {
-            // Asumsi: Constructor Plate() default menghasilkan piring bersih (isClean=true)
+        // Mengisi stok awal
+        for (int i = 0; i < INITIAL_STOCK; i++) {
             plates.push(new Plate()); 
         }
-        log("INFO", "Stok awal: 5 Piring bersih tersedia.");
+        log("INFO", "INITIAL STOCK: " + INITIAL_STOCK + " clean plates available.");
+    }
+
+    public static PlateStorageStation getInstance() {
+        return instance;
     }
 
     /**
-     * Menangani interaksi Chef (Mengambil Piring atau Menaruh Piring).
+     * Menangani interaksi Chef (Mengambil Piring).
      */
     @Override
     public void onInteract(Chef chef) {
@@ -37,56 +53,57 @@ public class PlateStorageStation extends Station {
         // SCENARIO 1: AMBIL PIRING (Hand: Kosong)
         if (itemHand == null) {
             if (plates.isEmpty()) {
-                log("FAIL", "Piring habis!");
+                log("FAIL", "STORAGE EMPTY: No plates available!");
                 return;
             }
 
-            // Cek piring paling atas TANPA mengambilnya
+            // Cek piring paling atas
             Plate topPlate = plates.peek();
 
-            // Piring diambil, terlepas dari statusnya (Dirty atau Clean)
-            chef.setInventory(plates.pop());
+            // RESTRIKSI GDD: Plate bersih TIDAK bisa diambil jika Plate di atasnya kotor.
             
             if (topPlate.isClean()) {
-                // KONDISI A: Piring bersih di atas (Aman diambil)
-                log("ACTION", "Mengambil Piring Bersih. Sisa: " + plates.size());
+                // KASUS A: Ambil Piring Bersih.
+                chef.setInventory(plates.pop());
+                
+                // --- LOGGING AKURAT KASUS A ---
+                long cleanCount = plates.stream().filter(Plate::isClean).count();
+                log("ACTION", "TAKEN: Clean Plate. Remaining Clean: " + cleanCount + ". Total: " + plates.size());
+                return;
             } else {
-                // KONDISI B: Piring kotor di atas (RESTRIKSI GDD)
-                log("ACTION", "Mengambil Piring Kotor untuk dicuci. Sisa: " + plates.size());
+                // KASUS B: Ambil Plate Kotor yang memblokir.
+                chef.setInventory(plates.pop()); 
+                
+                // --- LOGGING AKURAT KASUS B ---
+                long totalCount = plates.size();
+                long dirtyCount = plates.stream().filter(p -> !p.isClean()).count();
+                long cleanCount = totalCount - dirtyCount;
+                
+                log("ACTION", "TAKEN: Dirty Plate (for washing). Remaining Dirty: " + dirtyCount + ". Remaining Clean: " + cleanCount + ". Total: " + totalCount);
+                return;
             }
-            return;
         }
 
-        // SCENARIO 2: MENARUH PIRING (Drop Manual/Pengembalian)
-        if (itemHand instanceof Plate) {
-            Plate p = (Plate) itemHand;
-            
-            // Piring kotor (dari Serving) atau bersih (dari Washing) selalu masuk paling atas.
-            plates.push(p);
-            chef.setInventory(null);
-            
-            // Logging disesuaikan berdasarkan status piring yang ditaruh
-            String status = p.isClean() ? "Bersih" : "Kotor";
-            log("INFO", "Piring " + status + " ditaruh manual ke tumpukan. Total: " + plates.size());
-            return;
-        }
-        
-        log("INFO", "Tangan penuh dengan item non-Plate, tidak bisa berinteraksi.");
+        // SCENARIO 2: MENARUH ITEM (Drop Manual)
+        log("FAIL", "DROP REJECTED: Items cannot be dropped directly onto Plate Storage.");
     }
     
-    // Method yang dipanggil dari ServingStation / WashingStation (Pengembalian piring)
     /**
-     * Digunakan oleh ServingStation/WashingStation untuk mengembalikan piring kotor/bersih ke tumpukan.
-     * Piring yang dikembalikan masuk paling atas (LIFO).
+     * Digunakan oleh ServingStation/WashingStation untuk mengembalikan piring kotor/bersih ke tumpukan (Internal Add).
      */
-    public void addDirtyPlate(Plate p) {
+    public void addPlateToStack(Plate p) {
         if (p != null) {
             plates.push(p);
+            
+            String status = p.isClean() ? "Clean" : "Dirty";
+            
+            // Log Internal
+            log("INFO", "RETURNED: " + status + " plate added automatically to stack. Total: " + plates.size());
         }
     }
     
     /**
-     * Helper untuk debug (Digunakan oleh ServingStation/GUI).
+     * Helper untuk debug.
      */
     public int getPlateCount() {
         return plates.size();

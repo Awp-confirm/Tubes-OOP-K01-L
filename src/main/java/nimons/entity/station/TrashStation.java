@@ -7,7 +7,7 @@ import nimons.entity.item.KitchenUtensil;
 import nimons.entity.item.interfaces.CookingDevice;
 
 /**
- * TrashStation (T) menangani pembuangan Item dan pembersihan Kitchen Utensil.
+ * TrashStation (T): Menangani pembuangan Item dan pembersihan Kitchen Utensil.
  * Logic utama: Menghapus item dari inventory Chef atau mereset Utensil.
  */
 public class TrashStation extends Station {
@@ -27,21 +27,23 @@ public class TrashStation extends Station {
         // Hanya beraksi jika Chef memegang Item
         if (itemHand != null) {
             
-            // Scenario 1: Utensil (Panci, Wajan)
+            // Scenario 1: Utensil (Panci, Wajan, dll.)
             if (itemHand instanceof KitchenUtensil) {
-                KitchenUtensil panci = (KitchenUtensil) itemHand;
+                KitchenUtensil utensil = (KitchenUtensil) itemHand;
                 
-                // Pastikan contents tidak null sebelum dicek isEmpty()
-                if (panci.getContents() != null && !panci.getContents().isEmpty()) { 
-                    panci.getContents().clear(); // Hapus semua isi (bahan/dish)
+                // Cek apakah Utensil berisi Item (kotor)
+                if (utensil.getContents() != null && !utensil.getContents().isEmpty()) { 
+                    utensil.getContents().clear(); // Hapus semua isi (bahan/dish)
                     
                     // Reset Status Masak (mematikan timer, dsb.)
-                    if (panci instanceof CookingDevice) {
-                        ((CookingDevice) panci).reset();
+                    if (utensil instanceof CookingDevice) {
+                        ((CookingDevice) utensil).reset();
                     }
-                    log("SUCCESS", "Isi " + panci.getName() + " dibuang dan di-reset.");
+                    // Log representatif: Isi dibuang dan Utensil di-reset
+                    log("SUCCESS", "CLEANED: Contents of " + utensil.getName() + " discarded and reset.");
                 } else {
-                    log("INFO", panci.getName() + " sudah bersih.");
+                    // Log representatif: Utensil sudah bersih
+                    log("INFO", utensil.getName() + " is already clean.");
                 }
                 return; // Utensil tetap di tangan Chef setelah dibersihkan
             }
@@ -49,9 +51,11 @@ public class TrashStation extends Station {
             // Scenario 2: Item Biasa (Ingredient, Dish, Plate Kotor)
             String itemName = itemHand.getName();
             chef.setInventory(null);
-            log("SUCCESS", "Item " + itemName + " dibuang.");
+            // Log representatif: Item dibuang
+            log("SUCCESS", "DISCARDED: Item " + itemName + " thrown away.");
         } else {
-            log("INFO", "Tidak ada item di tangan untuk dibuang.");
+            // Log representatif: Tangan kosong
+            log("INFO", "HAND EMPTY: No item to discard.");
         }
     }
 }

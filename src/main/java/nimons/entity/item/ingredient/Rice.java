@@ -30,13 +30,11 @@ public class Rice extends Ingredient {
     }
 
     @Override
-    public void cook() {
-        if (getState() == IngredientState.RAW) {
-            setState(IngredientState.COOKING);
-        } else if (getState() == IngredientState.COOKING) {
-            setState(IngredientState.COOKED);
-        } else if (getState() == IngredientState.COOKED) {
-            setState(IngredientState.BURNED);
+        public void cook() {
+            if (getState() == IngredientState.RAW) {
+                // --- REVISI: HANYA SET STATE KE COOKING DAN RESET TIMER ---
+                setState(IngredientState.COOKING);
+                // currentCookTime akan direset oleh updateCooking() saat transisi state
+            } 
         }
-    }
 }

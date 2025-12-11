@@ -3,16 +3,17 @@ package nimons.entity.station;
 import java.util.ArrayList;
 import java.util.List;
 
-import nimons.entity.chef.Chef;
+import nimons.entity.chef.Chef; 
 import nimons.entity.common.Position;
 import nimons.entity.item.Dish;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate;
 import nimons.entity.item.interfaces.Preparable;
+import nimons.gui.GameScreen; // Tambahkan import GameScreen
 
 /**
- * Kelas abstrak dasar untuk semua Station di Nimonscooked.
- * Menyediakan logika umum seperti logger dan proses plating (Dish Wrapper).
+ * Kelas abstrak dasar (Base Class) untuk semua Station di Nimonscooked.
+ * Menyediakan kerangka dasar interaksi, update timer, dan sistem logging.
  */
 public abstract class Station {
     protected String name;
@@ -24,62 +25,86 @@ public abstract class Station {
     }
 
     /**
-     * Metode utama yang dipanggil ketika Chef berinteraksi (menekan tombol).
+     * Dipanggil saat Chef berinteraksi dengan stasiun (menekan tombol aksi).
      */
     public abstract void onInteract(Chef chef);
 
     /**
-     * Metode yang dipanggil setiap tick game untuk mengupdate timer/progress.
+     * Dipanggil setiap frame (tick) game untuk mengupdate timer/progress.
      */
     public void update(long deltaTime) {
-        // Default: Subclasses yang memiliki timer (Cooking, Cutting, Washing) harus meng-override metode ini.
+        // Default: Diharapkan dioverride oleh Stasiun dengan mekanisme timer.
     }
 
     public String getName() { return name; }
     public Position getPosition() { return position; }
 
     /**
-     * Helper method untuk logging yang konsisten di konsol/GUI.
-     * @param type Tipe pesan (ACTION, SUCCESS, FAIL, INFO).
-     * @param msg Isi pesan.
+     * Helper method untuk logging yang konsisten di konsol dan HUD.
+     * Menggunakan Singleton GameScreen untuk mengirim pesan.
      */
-    protected void log(String type, String msg) {
-        // Contoh Output: [Cutting Station] [SUCCESS] Bahan terpotong!
-        System.out.println("[" + this.name + "] [" + type + "] " + msg);
-    }
-
+    protected void log(String level, String message) {
+        String stationType = this.getClass().getSimpleName(); 
+        String formattedMessage = "[" + stationType + "] [" + level + "] " + message;
+        
+        System.out.println(formattedMessage);
+        
+        // 2. KIRIM KE GAME SCREEN 
+        try {
+            // Panggil addLog melalui Singleton Instance
+            GameScreen.getInstance().addLog(formattedMessage); 
+        } catch (Exception e) {
+            // Log ke console sebagai fallback jika GameScreen belum siap
+            System.err.println("CRITICAL ERROR: Failed to add log to GUI: " + e.getMessage());
+        }
+    } 
+    
     /**
-     * Helper method untuk menangani logika Plating Universal (The Dish Wrapper).
-     * Mengubah Ingredient menjadi Dish sebelum diletakkan di Piring.
+     * Mengembalikan rasio progres saat ini (0.0 hingga 1.0) untuk rendering Progress Bar.
+     * Diharapkan di-override oleh Stasiun yang memiliki timer.
+     */
+    public float getProgressRatio() {
+        return 0.0f; // Default: Tidak ada progress
+    }
+    
+    /**
+     * Mengembalikan true jika Stasiun sedang aktif memproses item.
+     * Digunakan oleh GameScreen untuk menentukan rendering Progress Bar.
+     */
+    public boolean isActive() {
+        return getProgressRatio() > 0.0f && getProgressRatio() < 1.0f;
+    }
+    
+    /**
+     * Helper method: Melakukan Plating Awal (Membungkus Item menjadi Dish).
      * MENGGUNAKAN ALIAS PLATE.GETFOOD()/SETFOOD().
      */
     protected void processPlating(Plate piring, Item itemToPlate) {
         if (itemToPlate == null) return;
 
-        // 1. Cek Piring Penuh? MENGGUNAKAN GETFOOD() ALIAS
+        // Cek Piring Penuh
         if (piring.getFood() != null) { 
-            log("FAIL", "Piring sudah penuh!");
+            log("FAIL", "PLATING REJECTED: Plate is full.");
             return;
         }
 
-        // 2. Logic Wrapper / Konversi
         Dish dishSiapSaji;
 
         if (itemToPlate instanceof Dish) {
-            // Item sudah berupa Dish, langsung casting.
+            // Item sudah Dish, langsung gunakan
             dishSiapSaji = (Dish) itemToPlate;
         } else {
-            // Item adalah Ingredient (harus dibungkus jadi Dish baru).
+            // Item adalah Ingredient: Bungkus menjadi Dish Parsial baru
             List<Preparable> components = new ArrayList<>();
             if (itemToPlate instanceof Preparable) {
                 components.add((Preparable) itemToPlate);
             }
-            // Buat Dish baru yang berisi ingredient ini sebagai komponen pertama.
-            dishSiapSaji = new Dish("D-" + itemToPlate.getName(), itemToPlate.getName(), components);
+            // Buat Dish baru: ID dan Nama Dish mengambil dari Ingredient pertama
+            dishSiapSaji = new Dish("D-" + itemToPlate.getName(), itemToPlate.getName(), components); 
         }
 
-        // 3. Masukkan Dish ke Piring MENGGUNAKAN SETFOOD() ALIAS
+        // Masukkan Dish ke Piring
         piring.setFood(dishSiapSaji); 
-        log("SUCCESS", "Plating " + dishSiapSaji.getName() + " berhasil.");
+        log("SUCCESS", "PLATED: " + dishSiapSaji.getName() + " successfully placed on plate.");
     }
 }

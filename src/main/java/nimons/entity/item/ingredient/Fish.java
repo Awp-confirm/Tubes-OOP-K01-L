@@ -11,26 +11,34 @@ public class Fish extends Ingredient {
 
     @Override
     public boolean canBeChopped() {
-        return false; // Fish tidak perlu dipotong untuk sushi
+        return false; 
     }
 
     @Override
     public boolean canBeCooked() {
-        return false; // Fish untuk sushi dimakan mentah
+        // Mengizinkan Fish masuk ke Cooking Station HANYA jika masih RAW
+        return getState() == IngredientState.RAW; 
     }
 
     @Override
     public boolean canBePlacedOnPlate() {
-        return getState() == IngredientState.RAW;
+        // Hanya RAW yang valid untuk resep sushi
+        // Jika ingin mengizinkan COOKED untuk test case kegagalan, logic ini harus diubah.
+        return getState() == IngredientState.RAW; 
     }
 
     @Override
     public void chop() {
-        // Fish tidak bisa dipotong
+        // Tidak ada perubahan state
     }
 
     @Override
     public void cook() {
-        // Fish tidak bisa dimasak (untuk sushi)
+        // --- REVISI: Pindahkan state ke COOKING untuk memicu update timer ---
+        if (getState() == IngredientState.RAW) {
+            setState(IngredientState.COOKING);
+            // Asumsi: currentCookTime akan direset/diinisialisasi oleh Cooking Station atau Utensil
+        } 
+        // State COOKING, COOKED, dan BURNED akan dihandle oleh update loop
     }
 }

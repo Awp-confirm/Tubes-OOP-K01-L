@@ -70,14 +70,6 @@ public class Oven extends KitchenUtensil implements CookingDevice {
 
     @Override
     public void update(long deltaTime) {
-        // Update cooking progress for all ingredients
-        if (getContents() != null) {
-            for (Preparable ingredient : getContents()) {
-                if (ingredient.getState() == nimons.entity.item.IngredientState.COOKING) {
-                    // Continue cooking process
-                }
-            }
-        }
     }
 
     @Override
