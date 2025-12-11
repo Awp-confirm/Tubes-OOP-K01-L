@@ -1,6 +1,7 @@
 package nimons.gui;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +43,9 @@ public class GameScreen {
     private TileManager tileManager;
     private List<Position> spawnPositions;
     private AnimationTimer gameLoop;
-    private Chef playerChef;  // Chef pertama
-    private Chef chef2;        // Chef kedua
-    private Chef activeChef;   // Chef yang sedang dikontrol
+    private Chef playerChef; 	// Chef pertama
+    private Chef chef2; 	 	// Chef kedua
+    private Chef activeChef; 	// Chef yang sedang dikontrol
     
     // Smooth movement
     private double chefRenderX = 0;
@@ -85,11 +86,23 @@ public class GameScreen {
     private Image chefImage;
     private Map<String, Image> stationImages;
 
+    // --- LOGGING & SINGLETON FIELDS ---
+    private List<String> onScreenLogs = new ArrayList<>();
+    private static GameScreen instance; // Static instance untuk Singleton
+    private final static int MAX_LOGS = 5; // Maksimal 5 baris log di layar
+
     public GameScreen(Stage stage) {
         this.stage = stage;
         this.rootPane = new StackPane();
         this.canvas = new Canvas(WINDOW_WIDTH, WINDOW_HEIGHT);
         this.gc = canvas.getGraphicsContext2D();
+        
+        // --- IMPLEMENTASI SINGLETON ---
+        if (instance != null) {
+            throw new IllegalStateException("GameScreen already instantiated.");
+        }
+        instance = this; // Set instance saat konstruktor dipanggil
+        // ------------------------------
         
         rootPane.getChildren().add(canvas);
         
@@ -106,15 +119,40 @@ public class GameScreen {
         setupGameLoop();
     }
     
+    /**
+     * Getter statis untuk instance GameScreen (Singleton).
+     */
+    public static GameScreen getInstance() { 
+        return instance; 
+    }
+    
+    /**
+     * Method untuk menyimpan log dan ditampilkan di HUD (Dipanggil dari Station.java)
+     */
+    public void addLog(String message) {
+        // Tambahkan ke depan list (LIFO: Log terbaru ada di index 0)
+        onScreenLogs.add(0, message); 
+        
+        // Batasi jumlah log yang ditampilkan
+        if (onScreenLogs.size() > MAX_LOGS) {
+            // Hapus log yang paling lama (di akhir list)
+            onScreenLogs.remove(onScreenLogs.size() - 1); 
+        }
+    }
+    
+    
     private void loadAssets() {
+        // 1. Inisialisasi Map (wajib)
         stationImages = new HashMap<>();
         
-        System.out.println("=== Loading Assets ===");
+        System.out.println("=== Forcing Fallback UI for Debugging ===");
         
-        // Load tile images
-        floorImage = loadImage("/assets/picture/floor.png");
-        System.out.println("Floor image loaded: " + (floorImage != null));
+        // 2. Paksa semua Image utama menjadi NULL
+        floorImage = null;
+        wallImage = null;
+        chefImage = null;
         
+<<<<<<< HEAD
         // Wall image - fallback ke floor jika tidak ada
         wallImage = loadImage("/assets/picture/wall.png");
         if (wallImage == null) {
@@ -152,10 +190,16 @@ public class GameScreen {
             stationImages.put("trash", trashImg);
             System.out.println("✓ Trash.png loaded");
         }
+=======
+        // 3. Paksa semua Image station menjadi NULL
+        stationImages.put("cook", null);
+        stationImages.put("table", null);
+        stationImages.put("serving", null);
+        stationImages.put("wash", null);
+>>>>>>> feat/station
         
         System.out.println("=== Assets Loading Complete ===");
     }
-    
     private Image loadImage(String path) {
         try {
             InputStream is = getClass().getResourceAsStream(path);
@@ -186,6 +230,9 @@ public class GameScreen {
                 double tileSizeByWidth = WINDOW_WIDTH / tileManager.getWidth();
                 double tileSizeByHeight = WINDOW_HEIGHT / tileManager.getHeight();
                 tileSize = Math.min(tileSizeByWidth, tileSizeByHeight);
+                
+                // --- PERUBAHAN SKALA: Skala Tile Size ke 80% dari ukuran maksimum ---
+                tileSize = tileSize * 0.70; 
             }
             
             System.out.println("Map loaded: " + stageId);
@@ -247,10 +294,11 @@ public class GameScreen {
             Tile[][] emptyTiles = new Tile[10][10];
             for (int y = 0; y < 10; y++) {
                 for (int x = 0; x < 10; x++) {
-                    emptyTiles[y][x] = new Tile(new Position(x, y), false);
+                    // Anda perlu memiliki constructor Tile(Position, boolean isWall)
+                    // emptyTiles[y][x] = new Tile(new Position(x, y), false); 
                 }
             }
-            this.tileManager = new TileManager(10, 10, emptyTiles);
+            // this.tileManager = new TileManager(10, 10, emptyTiles);
         }
     }
 
@@ -327,13 +375,18 @@ public class GameScreen {
         
         if (tileManager == null) return;
         
-        // Calculate offset to center the map
+        // Calculate map dimensions
         double mapWidth = tileManager.getWidth() * tileSize;
         double mapHeight = tileManager.getHeight() * tileSize;
-        double offsetX = (WINDOW_WIDTH - mapWidth) / 2;
-        double offsetY = (WINDOW_HEIGHT - mapHeight) / 2;
         
-        // Render tiles
+        // Offset X: Tetap di tengah
+        double offsetX = (WINDOW_WIDTH - mapWidth) / 2; 
+        
+        // Offset Y: Letakkan map 20px dari tepi atas
+        double mapTopMargin = 20; 
+        double offsetY = mapTopMargin; 
+        
+        // --- START: RENDERING MAP TILES DAN STATIONS ---
         Tile[][] tiles = tileManager.getTiles();
         for (int y = 0; y < tileManager.getHeight(); y++) {
             for (int x = 0; x < tileManager.getWidth(); x++) {
@@ -343,65 +396,111 @@ public class GameScreen {
                 double screenX = offsetX + x * tileSize;
                 double screenY = offsetY + y * tileSize;
                 
-                // Draw tile background
+                // 1. Draw tile background (Floor/Wall)
                 if (tile.isWall()) {
-                    if (wallImage != null) {
-                        gc.drawImage(wallImage, screenX, screenY, tileSize, tileSize);
-                    } else {
-                        // Fallback: dark gray wall
-                        gc.setFill(Color.web("#2d2d2d"));
-                        gc.fillRect(screenX, screenY, tileSize, tileSize);
-                    }
+                    // Fallback: dark gray wall
+                    gc.setFill(Color.web("#2d2d2d"));
+                    gc.fillRect(screenX, screenY, tileSize, tileSize);
                 } else {
-                    if (floorImage != null) {
-                        gc.drawImage(floorImage, screenX, screenY, tileSize, tileSize);
-                    } else {
-                        // Fallback: light floor
-                        gc.setFill(Color.web("#e8dcc8"));
-                        gc.fillRect(screenX, screenY, tileSize, tileSize);
-                    }
+                    // Fallback: light floor
+                    gc.setFill(Color.web("#e8dcc8"));
+                    gc.fillRect(screenX, screenY, tileSize, tileSize);
                 }
                 
-                // Draw station on top of floor
+                // 2. Draw station on top of floor
                 Station station = tile.getStation();
                 if (station != null) {
-                    Image stationImage = getStationImage(station);
-                    if (stationImage != null) {
-                        gc.drawImage(stationImage, screenX, screenY, tileSize, tileSize);
-                    } else {
-                        // Fallback to colored rectangle
-                        gc.setFill(Color.web("#ff6b35"));
-                        double padding = tileSize * 0.1;
-                        gc.fillRect(screenX + padding, screenY + padding, 
-                                   tileSize - padding * 2, tileSize - padding * 2);
+                    // Fallback to colored rectangle (Orange)
+                    gc.setFill(Color.web("#ff6b35"));
+                    double padding = tileSize * 0.1;
+                    gc.fillRect(screenX + padding, screenY + padding, 
+                                tileSize - padding * 2, tileSize - padding * 2);
+                    
+                    // Draw station initial
+                    gc.setFill(Color.WHITE);
+                    gc.setFont(javafx.scene.text.Font.font(tileSize * 0.3));
+                    String initial = station.getClass().getSimpleName().substring(0, 1);
+                    gc.fillText(initial, screenX + tileSize * 0.4, screenY + tileSize * 0.6);
+
+                        // --- LOGIC BARU: RENDER PROGRESS BAR ---
+                    if (station.isActive()) {
+                        float ratio = station.getProgressRatio();
                         
-                        // Draw station initial
-                        gc.setFill(Color.WHITE);
-                        gc.setFont(javafx.scene.text.Font.font(tileSize * 0.3));
-                        String initial = station.getClass().getSimpleName().substring(0, 1);
-                        gc.fillText(initial, screenX + tileSize * 0.4, screenY + tileSize * 0.6);
+                        // Progress Bar Dimensions
+                        double barHeight = tileSize * 0.1;
+                        double barWidth = tileSize * 0.8;
+                        double barX = screenX + tileSize * 0.1;
+                        double barY = screenY - barHeight - 2; // Di atas tile
+                        
+                        // Background Bar (Merah/Abu-abu)
+                        gc.setFill(Color.GRAY.darker());
+                        gc.fillRect(barX, barY, barWidth, barHeight);
+                        
+                        // Progress Bar (Hijau)
+                        gc.setFill(Color.LIMEGREEN);
+                        gc.fillRect(barX, barY, barWidth * ratio, barHeight);
+                        
+                        // Border (Optional)
+                        gc.setStroke(Color.BLACK);
+                        gc.setLineWidth(1);
+                        gc.strokeRect(barX, barY, barWidth, barHeight);
                     }
+                    // ----------------------------------------
+            
                 }
             }
         }
         
-        // Draw both chefs (overlay di atas lantai)
+        // --- DRAW CHEFS ---
         if (playerChef != null) {
             drawChef(playerChef, offsetX, offsetY, playerChef == activeChef);
         }
         if (chef2 != null) {
             drawChef(chef2, offsetX, offsetY, chef2 == activeChef);
         }
+        // --- END: RENDERING MAP ---
+
+        // --- RENDER HUD STATUS DAN LOG DI BAGIAN BAWAH MAP ---
         
-        // Render game UI (timer and score)
-        renderGameUI();
+        // Posisi X Mutlak: 20px dari tepi kiri layar
+        double fixedLogX = 20;
         
-        // Render pause menu jika game di-pause
-        if (isPaused) {
-            renderPauseMenu();
+        // Posisi Y Mutlak Awal: Di bawah map, +30px spacing
+        double hudYStart = offsetY + mapHeight + 30; 
+        
+        // 1. Status Tangan (Hand: Item)
+        gc.setTextAlign(TextAlignment.LEFT);
+        
+        if (activeChef != null) {
+            String handContent = activeChef.getInventory() != null ? 
+                                activeChef.getInventory().getName() : 
+                                "Kosong";
+            
+            gc.setFill(Color.web("#F2C38F")); 
+            gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 18));
+            gc.fillText("Hand: " + handContent, fixedLogX, hudYStart);
         }
+        
+        // 2. Log Aksi (Stack dari Bawah)
+        
+        // Y awal untuk log (20px di bawah status tangan)
+        double logYStart = hudYStart + 20; 
+        
+        gc.setFont(Font.font("Arial", 16));
+        
+        // Log terbaru ada di index 0 (ingin log terbaru di BARIS PALING BAWAH)
+        for (int i = 0; i < onScreenLogs.size(); i++) {
+            String logMsg = onScreenLogs.get(i);
+            
+            // Stack ke bawah (logYStart + 20*i)
+            double drawY = logYStart + i * 20; 
+            
+            gc.setFill(Color.WHITE); 
+            gc.fillText(logMsg, fixedLogX, drawY);
+        }
+        // -----------------------------------------------------
     }
-    
+
     private Image getStationImage(Station station) {
         if (station instanceof CookingStation) {
             // R = Cooking Station (Stove/Oven)
@@ -484,10 +583,27 @@ public class GameScreen {
                     // Switch chef
                     switchChef();
                     break;
-                case SHIFT:
-                    // Hold shift for dash
-                    shiftPressed = true;
+                
+                // --- PERUBAHAN KRITIS: INTERAKSI MENGGUNAKAN SPACE ---
+                case SPACE: 
+                    // Trigger interaction on the adjacent station
+                    if (!isPaused && activeChef != null && tileManager != null) {
+                        
+                        // 1. Dapatkan posisi TILE di depan Chef
+                        Position posInFront = getPositionInFront(activeChef);
+                        
+                        // 2. Dapatkan Tile di posisi tersebut
+                        Tile adjacentTile = tileManager.getTileAt(posInFront);
+
+                        // 3. Cek apakah Tile tersebut ada dan memiliki Station
+                        if (adjacentTile != null && adjacentTile.getStation() != null) {
+                            // Panggil onInteract pada Station yang ditemukan
+                            adjacentTile.getStation().onInteract(activeChef);
+                        }
+                    }
                     break;
+                // ----------------------------------------------------
+                    
                 default:
                     break;
             }
@@ -517,10 +633,18 @@ public class GameScreen {
     }
     
     private void handleChefMovement(long currentTime) {
-        if (activeChef == null || tileManager == null) {
+    if (activeChef == null || tileManager == null) {
             return;
         }
-        
+
+        // --- REVISI: TAMBAHKAN CHECK STATUS BUSY ---
+        // Jika Chef sedang sibuk (misalnya memotong/mencuci), hentikan pemrosesan gerakan.
+        // Asumsi: activeChef memiliki method isBusy()
+        if (activeChef.isBusy()) { 
+            return; 
+        }
+        // ------------------------------------------
+
         // Movement cooldown
         if (currentTime - lastMoveTime < MOVE_COOLDOWN * 1_000_000) {
             return;
@@ -613,9 +737,11 @@ public class GameScreen {
                 chefTargetY = newPos.getY();
                 
                 // Add chef to new tile
+                // Catatan: Anda menggunakan playerChef di sini, bukan activeChef. 
+                // Ini mungkin bug jika chef lain yang bergerak.
                 Tile newTile = tileManager.getTileAt(newPos);
                 if (newTile != null) {
-                    newTile.setChefOnTile(playerChef);
+                    newTile.setChefOnTile(activeChef); 
                 }
                 
                 lastMoveTime = currentTime;
@@ -654,7 +780,7 @@ public class GameScreen {
             gc.setFill(Color.web("#ff6b6b"));
             double chefPadding = tileSize * 0.15;
             gc.fillOval(chefScreenX + chefPadding, chefScreenY + chefPadding,
-                       tileSize - chefPadding * 2, tileSize - chefPadding * 2);
+                         tileSize - chefPadding * 2, tileSize - chefPadding * 2);
             
             // Draw direction indicator
             gc.setFill(Color.WHITE);
@@ -718,6 +844,33 @@ public class GameScreen {
         moveRight = false;
     }
     
+    // nimons/gui/GameScreen.java
+
+    /**
+     * Menghitung posisi tile di depan Chef berdasarkan arah (Direction)
+     */
+    private Position getPositionInFront(Chef chef) {
+        Position currentPos = chef.getPosition();
+        int newX = currentPos.getX();
+        int newY = currentPos.getY();
+        
+        switch (chef.getDirection()) {
+            case UP:
+                newY--;
+                break;
+            case DOWN:
+                newY++;
+                break;
+            case LEFT:
+                newX--;
+                break;
+            case RIGHT:
+                newX++;
+                break;
+        }
+        
+        return new Position(newX, newY);
+    }
     private void togglePause() {
         isPaused = !isPaused;
         if (isPaused) {
@@ -799,6 +952,7 @@ public class GameScreen {
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText(text, x + width / 2, y + height / 2 + 6);
     }
+<<<<<<< HEAD
     
     private void renderGameUI() {
         // Draw score at top right
@@ -841,3 +995,6 @@ public class GameScreen {
         resultScreen.start();
     }
 }
+=======
+}
+>>>>>>> feat/station

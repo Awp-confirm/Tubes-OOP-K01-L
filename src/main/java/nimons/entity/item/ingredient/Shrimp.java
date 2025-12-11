@@ -32,11 +32,11 @@ public class Shrimp extends Ingredient {
     @Override
     public void cook() {
         if (getState() == IngredientState.RAW) {
+            // HANYA SET STATE KE COOKING untuk memulai timer
             setState(IngredientState.COOKING);
-        } else if (getState() == IngredientState.COOKING) {
-            setState(IngredientState.COOKED);
-        } else if (getState() == IngredientState.COOKED) {
-            setState(IngredientState.BURNED);
-        }
+            // Reset progress jika ada
+            this.currentCookTime = 0; 
+        } 
+        // State COOKING, COOKED, dan BURNED akan dihandle oleh updateCooking() di parent class.
     }
 }

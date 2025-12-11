@@ -3,10 +3,10 @@ package nimons.logic.recipe;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors; // Tambahkan import Collectors
 
 import nimons.entity.item.Dish;
 import nimons.entity.item.Ingredient;
-import nimons.entity.item.Item;
 import nimons.entity.item.interfaces.Preparable;
 import nimons.entity.order.IngredientRequirement;
 import nimons.entity.order.Recipe;
@@ -24,87 +24,56 @@ public class RecipeManager {
         new FishCucumberRoll()
     );
 
+
     /**
-     * Mencari resep yang cocok dengan kombinasi item yang diberikan.
-     * @param item1 Item pertama
-     * @param item2 Item kedua
-     * @return Dish jika resep cocok, null jika tidak
+     * Mencari Dish final dari list komponen yang sudah terkumpul di Plate.
+     * Dipanggil oleh AssemblyStation setelah setiap penambahan Ingredient (untuk penamaan Dish).
+     * * @param components List of Preparable (Ingredient) yang ada di Plate.
+     * @return Dish yang cocok jika resep lengkap terpenuhi, atau null jika tidak.
      */
-    public static Dish findMatch(Item item1, Item item2) {
-        // Kumpulkan semua ingredient dari kedua item
-        List<Ingredient> ingredients = new ArrayList<>();
-        
-        if (item1 instanceof Ingredient) {
-            ingredients.add((Ingredient) item1);
-        } else if (item1 instanceof Dish) {
-            Dish dish = (Dish) item1;
-            for (Preparable p : dish.getComponents()) {
-                if (p instanceof Ingredient) {
-                    ingredients.add((Ingredient) p);
-                }
-            }
+    public static Dish findMatch(List<Preparable> components) {
+        if (components == null || components.isEmpty()) {
+            return null;
         }
-        
-        if (item2 instanceof Ingredient) {
-            ingredients.add((Ingredient) item2);
-        } else if (item2 instanceof Dish) {
-            Dish dish = (Dish) item2;
-            for (Preparable p : dish.getComponents()) {
-                if (p instanceof Ingredient) {
-                    ingredients.add((Ingredient) p);
-                }
-            }
-        }
-        
+
+        // Konversi Preparable (components) menjadi List<Ingredient> untuk validasi
+        List<Ingredient> ingredients = components.stream()
+            .filter(p -> p instanceof Ingredient)
+            .map(p -> (Ingredient) p)
+            .collect(Collectors.toList());
+
         // Cek setiap resep
         for (Recipe recipe : ALL_RECIPES) {
             if (matchesRecipe(ingredients, recipe)) {
-                // Buat dish baru dengan ingredients yang cocok
-                List<Preparable> components = new ArrayList<>(ingredients);
+                // Buat Dish baru DENGAN NAMA FINAL resep
+                List<Preparable> finalComponents = new ArrayList<>(components);
                 return new Dish(
                     recipe.getName().toLowerCase().replace(" ", "_"),
                     recipe.getName(),
-                    components
+                    finalComponents
                 );
             }
         }
         
-        // Jika tidak ada resep yang cocok, return Dish dengan kombinasi ingredients
-        if (!ingredients.isEmpty()) {
-            List<Preparable> components = new ArrayList<>(ingredients);
-            return new Dish("mixed_dish", "Mixed Dish", components);
-        }
-        
+        // --- PENTING: JANGAN KEMBALIKAN "Mixed Dish" DI SINI ---
+        // Jika tidak ada resep yang cocok, biarkan AssemblyStation mempertahankan nama Dish yang lama.
         return null;
     }
+    
 
     /**
-     * Mengecek apakah dua item bisa dikombinasikan.
-     */
-    public static boolean isValidCombination(Item item1, Item item2) {
-        if (item1 == null || item2 == null) return false;
-        
-        // Setidaknya salah satu harus ingredient atau dish
-        boolean hasIngredient = (item1 instanceof Ingredient || item1 instanceof Dish) &&
-                                (item2 instanceof Ingredient || item2 instanceof Dish);
-        
-        return hasIngredient;
-    }
-
-    /**
-     * Mengecek apakah ingredients yang diberikan cocok dengan resep.
+     * Mengecek apakah ingredients yang diberikan cocok dengan resep. (Logika ini tetap benar)
      */
     private static boolean matchesRecipe(List<Ingredient> ingredients, Recipe recipe) {
         List<IngredientRequirement> requirements = recipe.getRequirements();
         
-        // Jumlah ingredient harus sama dengan requirement
+        // 1. Jumlah ingredient harus sama dengan requirement
         if (ingredients.size() != requirements.size()) {
             return false;
         }
         
-        // Clone list untuk tracking requirement yang sudah dipenuhi
+        // 2. Clone list untuk tracking requirement yang sudah dipenuhi
         List<IngredientRequirement> remainingRequirements = new ArrayList<>(requirements);
-        List<Ingredient> remainingIngredients = new ArrayList<>(ingredients);
         
         // Cek setiap ingredient cocok dengan salah satu requirement
         for (Ingredient ingredient : ingredients) {
@@ -125,7 +94,7 @@ public class RecipeManager {
             }
         }
         
-        // Semua requirement harus terpenuhi
+        // 3. Semua requirement harus terpenuhi
         return remainingRequirements.isEmpty();
     }
 
