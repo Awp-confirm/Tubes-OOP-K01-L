@@ -16,8 +16,8 @@ public class Chef {
     // Dash attributes
     private boolean isDashing;
     private long lastDashTime;
-    private static final long DASH_COOLDOWN = 1000; // 1 second cooldown
-    private static final int DASH_DISTANCE = 2; // Dash 2 tiles
+    private static final long DASH_COOLDOWN = 3000; // 3 second cooldown
+    private static final int DASH_DISTANCE = 3; // Dash 3 tiles
 
     public Chef() {
         this.isDashing = false;

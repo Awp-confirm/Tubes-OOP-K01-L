@@ -19,10 +19,18 @@ import javafx.stage.Stage;
 import nimons.entity.chef.Chef;
 import nimons.entity.chef.Direction;
 import nimons.entity.common.Position;
+import nimons.entity.item.IngredientState;
+import nimons.entity.item.ingredient.Cucumber;
+import nimons.entity.item.ingredient.Fish;
+import nimons.entity.item.ingredient.Nori;
+import nimons.entity.item.ingredient.Rice;
+import nimons.entity.item.ingredient.Shrimp;
 import nimons.entity.map.MapLoadResult;
 import nimons.entity.map.MapLoader;
 import nimons.entity.map.Tile;
 import nimons.entity.map.TileManager;
+import nimons.entity.order.IngredientRequirement;
+import nimons.entity.order.Recipe;
 import nimons.entity.station.AssemblyStation;
 import nimons.entity.station.CookingStation;
 import nimons.entity.station.CuttingStation;
@@ -32,6 +40,7 @@ import nimons.entity.station.ServingStation;
 import nimons.entity.station.Station;
 import nimons.entity.station.WashingStation;
 import nimons.logic.GameState;
+import nimons.logic.order.OrderManager;
 
 public class GameScreen {
 
@@ -72,6 +81,10 @@ public class GameScreen {
     // Pause state
     private boolean isPaused = false;
     private long pauseStartTime = 0;
+    private double menuResumeButtonX = 0;
+    private double menuResumeButtonY = 0;
+    private double menuResumeButtonWidth = 0;
+    private double menuResumeButtonHeight = 0;
     private double menuMainMenuButtonX = 0;
     private double menuMainMenuButtonY = 0;
     private double menuMainMenuButtonWidth = 0;
@@ -79,6 +92,9 @@ public class GameScreen {
     
     // Game state (timer and score)
     private GameState gameState;
+    
+    // Order manager
+    private OrderManager orderManager;
     
     // Asset images
     private Image floorImage;
@@ -90,6 +106,9 @@ public class GameScreen {
     private List<String> onScreenLogs = new ArrayList<>();
     private static GameScreen instance; // Static instance untuk Singleton
     private final static int MAX_LOGS = 5; // Maksimal 5 baris log di layar
+    
+    // Game timing
+    private long gameStartTime = 0;
 
     public GameScreen(Stage stage) {
         this.stage = stage;
@@ -151,8 +170,7 @@ public class GameScreen {
         floorImage = null;
         wallImage = null;
         chefImage = null;
-        
-<<<<<<< HEAD
+
         // Wall image - fallback ke floor jika tidak ada
         wallImage = loadImage("/assets/picture/wall.png");
         if (wallImage == null) {
@@ -190,13 +208,6 @@ public class GameScreen {
             stationImages.put("trash", trashImg);
             System.out.println("✓ Trash.png loaded");
         }
-=======
-        // 3. Paksa semua Image station menjadi NULL
-        stationImages.put("cook", null);
-        stationImages.put("table", null);
-        stationImages.put("serving", null);
-        stationImages.put("wash", null);
->>>>>>> feat/station
         
         System.out.println("=== Assets Loading Complete ===");
     }
@@ -335,6 +346,13 @@ public class GameScreen {
         // Skip update jika game di-pause
         if (isPaused) {
             return;
+        }
+        
+        // Update order manager
+        if (orderManager != null) {
+            orderManager.update(deltaTime);
+            long currentTime = System.currentTimeMillis();
+            orderManager.trySpawnNewOrder(currentTime);
         }
         
         // Handle chef movement
@@ -499,6 +517,21 @@ public class GameScreen {
             gc.fillText(logMsg, fixedLogX, drawY);
         }
         // -----------------------------------------------------
+        
+        // Render game UI (Score and Timer)
+        renderGameUI();
+
+        // Render orders di atas map, bukan di atas tile
+        if (orderManager != null) {
+            // Tempatkan order panel di atas map (HUD), misal 10px di atas offsetY
+            double orderPanelY = Math.max(10, offsetY - 110); // 110 = tinggi panel + margin
+            OrderDisplay.renderOrders(gc, orderManager.getActiveOrders(), WINDOW_WIDTH, orderPanelY);
+        }
+        
+        // Render pause menu if paused
+        if (isPaused) {
+            renderPauseMenu();
+        }
     }
 
     private Image getStationImage(Station station) {
@@ -534,6 +567,14 @@ public class GameScreen {
         Scene scene = new Scene(rootPane, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.getStylesheets().add(getClass().getResource("/styles/mainmenu.css").toExternalForm());
         
+        // Initialize OrderManager dengan available recipes untuk sushi stage
+        orderManager = OrderManager.getInstance();
+        orderManager.reset();
+        
+        // Load dummy recipes untuk testing
+        List<Recipe> recipes = createDummyRecipes();
+        orderManager.setAvailableRecipes(recipes);
+        
         // Setup keyboard controls
         setupKeyboardControls(scene);
         
@@ -542,7 +583,51 @@ public class GameScreen {
         
         stage.setScene(scene);
         stage.setTitle("Nimonscooked - Game");
+        gameStartTime = System.currentTimeMillis();
         gameLoop.start();
+    }
+    
+    /**
+     * Create dummy recipes untuk testing
+     * Recipes:
+     * 1. Kappa Maki: Nori (Raw) + Nasi (Cooked) + Timun (Chopped)
+     * 2. Sakana Maki: Nori (Raw) + Nasi (Cooked) + Ikan (Raw)
+     * 3. Ebi Maki: Nori (Raw) + Nasi (Cooked) + Udang (Cooked)
+     * 4. Fish Cucumber Roll: Nori (Raw) + Nasi (Cooked) + Ikan (Raw) + Timun (Chopped)
+     */
+    private List<Recipe> createDummyRecipes() {
+        List<Recipe> recipes = new ArrayList<>();
+        
+        // Recipe 1: Kappa Maki - Nori (Raw) + Nasi (Cooked) + Timun (Chopped)
+        List<IngredientRequirement> kappaMakiReqs = new ArrayList<>();
+        kappaMakiReqs.add(new IngredientRequirement(Nori.class, IngredientState.RAW));
+        kappaMakiReqs.add(new IngredientRequirement(Rice.class, IngredientState.COOKED));
+        kappaMakiReqs.add(new IngredientRequirement(Cucumber.class, IngredientState.CHOPPED));
+        recipes.add(new Recipe("Kappa Maki", kappaMakiReqs));
+        
+        // Recipe 2: Sakana Maki - Nori (Raw) + Nasi (Cooked) + Ikan (Raw)
+        List<IngredientRequirement> sakanaMakiReqs = new ArrayList<>();
+        sakanaMakiReqs.add(new IngredientRequirement(Nori.class, IngredientState.RAW));
+        sakanaMakiReqs.add(new IngredientRequirement(Rice.class, IngredientState.COOKED));
+        sakanaMakiReqs.add(new IngredientRequirement(Fish.class, IngredientState.RAW));
+        recipes.add(new Recipe("Sakana Maki", sakanaMakiReqs));
+        
+        // Recipe 3: Ebi Maki - Nori (Raw) + Nasi (Cooked) + Udang (Cooked)
+        List<IngredientRequirement> ebiMakiReqs = new ArrayList<>();
+        ebiMakiReqs.add(new IngredientRequirement(Nori.class, IngredientState.RAW));
+        ebiMakiReqs.add(new IngredientRequirement(Rice.class, IngredientState.COOKED));
+        ebiMakiReqs.add(new IngredientRequirement(Shrimp.class, IngredientState.COOKED));
+        recipes.add(new Recipe("Ebi Maki", ebiMakiReqs));
+        
+        // Recipe 4: Fish Cucumber Roll - Nori (Raw) + Nasi (Cooked) + Ikan (Raw) + Timun (Chopped)
+        List<IngredientRequirement> fishCucumberRollReqs = new ArrayList<>();
+        fishCucumberRollReqs.add(new IngredientRequirement(Nori.class, IngredientState.RAW));
+        fishCucumberRollReqs.add(new IngredientRequirement(Rice.class, IngredientState.COOKED));
+        fishCucumberRollReqs.add(new IngredientRequirement(Fish.class, IngredientState.RAW));
+        fishCucumberRollReqs.add(new IngredientRequirement(Cucumber.class, IngredientState.CHOPPED));
+        recipes.add(new Recipe("Fish Cucumber Roll", fishCucumberRollReqs));
+        
+        return recipes;
     }
 
     public void stop() {
@@ -582,6 +667,9 @@ public class GameScreen {
                 case K:
                     // Switch chef
                     switchChef();
+                    break;
+                case SHIFT:
+                    shiftPressed = true;
                     break;
                 
                 // --- PERUBAHAN KRITIS: INTERAKSI MENGGUNAKAN SPACE ---
@@ -668,8 +756,8 @@ public class GameScreen {
             
             // Check if SHIFT pressed for dash
             if (shiftPressed && !activeChef.isDashOnCooldown(currentTime)) {
-                // Perform dash (2 tiles)
-                Position dashTarget = activeChef.dash(newDirection, currentTime);
+                // Perform dash with obstacle detection
+                Position dashTarget = calculateDashTarget(currentPos, newDirection);
                 
                 if (dashTarget != null && tileManager.isWalkable(dashTarget)) {
                     // Remove chef from old tile
@@ -680,6 +768,7 @@ public class GameScreen {
                     
                     // Move to dash target
                     activeChef.setPosition(dashTarget);
+                    activeChef.dash(newDirection, currentTime); // Update dash state
                     
                     // Update target position for smooth movement
                     chefTargetX = dashTarget.getX();
@@ -747,6 +836,55 @@ public class GameScreen {
                 lastMoveTime = currentTime;
             }
         }
+    }
+    
+    /**
+     * Calculate dash target dengan obstacle detection
+     * Dash 3 tiles, tapi stop di obstacle
+     */
+    private Position calculateDashTarget(Position start, Direction direction) {
+        int dashDistance = 3;
+        int currentX = start.getX();
+        int currentY = start.getY();
+        
+        // Check setiap tile dalam path dash
+        for (int i = 1; i <= dashDistance; i++) {
+            int nextX = currentX;
+            int nextY = currentY;
+            
+            switch (direction) {
+                case UP:
+                    nextY -= i;
+                    break;
+                case DOWN:
+                    nextY += i;
+                    break;
+                case LEFT:
+                    nextX -= i;
+                    break;
+                case RIGHT:
+                    nextX += i;
+                    break;
+            }
+            
+            Position checkPos = new Position(nextX, nextY);
+            
+            // Jika tile tidak walkable, return posisi sebelumnya
+            if (!tileManager.isWalkable(checkPos)) {
+                if (i == 1) {
+                    return null; // Tidak bisa dash ke depan
+                }
+                // Return posisi terakhir yang valid
+                return new Position(currentX, currentY);
+            }
+            
+            // Update current untuk cek berikutnya
+            currentX = nextX;
+            currentY = nextY;
+        }
+        
+        // Jika semua tile valid, return posisi final (3 tiles away)
+        return new Position(currentX, currentY);
     }
     
     /**
@@ -887,8 +1025,8 @@ public class GameScreen {
         gc.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
         
         // Draw pause menu box
-        double menuWidth = 400;
-        double menuHeight = 300;
+        double menuWidth = 450;
+        double menuHeight = 350;
         double menuX = (WINDOW_WIDTH - menuWidth) / 2;
         double menuY = (WINDOW_HEIGHT - menuHeight) / 2;
         
@@ -897,22 +1035,27 @@ public class GameScreen {
         gc.fillRoundRect(menuX, menuY, menuWidth, menuHeight, 20, 20);
         
         // Menu border
-        gc.setStroke(Color.web("#4b2a20"));
+        gc.setStroke(Color.web("#E8A36B"));
         gc.setLineWidth(3);
         gc.strokeRoundRect(menuX, menuY, menuWidth, menuHeight, 20, 20);
         
         // Title
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 48));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 56));
         gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
-        gc.fillText("PAUSED", WINDOW_WIDTH / 2, menuY + 80);
+        gc.fillText("PAUSED", WINDOW_WIDTH / 2, menuY + 70);
+        
         // Instructions
-        gc.setFont(Font.font("Arial", 20));
+        gc.setFont(Font.font("Arial", 18));
+        gc.setFill(Color.web("#E8A36B"));
         gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText("Press ESC to resume", WINDOW_WIDTH / 2, menuY + 140);
+        gc.fillText("Press ESC or click RESUME to continue", WINDOW_WIDTH / 2, menuY + 130);
+        
+        // Resume Button
+        drawButton(gc, "RESUME", menuX + (menuWidth - 200) / 2, menuY + 160, 200, 50);
         
         // Main Menu Button
-        drawButton(gc, "Main Menu", menuX + (menuWidth - 200) / 2, menuY + 190, 200, 50);
+        drawButton(gc, "MAIN MENU", menuX + (menuWidth - 200) / 2, menuY + 240, 200, 50);
     }
 
     private void setupMouseControls(Scene scene) {
@@ -920,6 +1063,13 @@ public class GameScreen {
             if (isPaused) {
                 double mouseX = event.getX();
                 double mouseY = event.getY();
+                
+                // Check if click is within Resume button
+                if (mouseX >= menuResumeButtonX && mouseX <= menuResumeButtonX + menuResumeButtonWidth &&
+                    mouseY >= menuResumeButtonY && mouseY <= menuResumeButtonY + menuResumeButtonHeight) {
+                    togglePause(); // Resume game
+                    return;
+                }
                 
                 // Check if click is within Main Menu button
                 if (mouseX >= menuMainMenuButtonX && mouseX <= menuMainMenuButtonX + menuMainMenuButtonWidth &&
@@ -931,54 +1081,92 @@ public class GameScreen {
     }
     
     private void drawButton(GraphicsContext gc, String text, double x, double y, double width, double height) {
-        // Store button bounds for mouse click detection
-        menuMainMenuButtonX = x;
-        menuMainMenuButtonY = y;
-        menuMainMenuButtonWidth = width;
-        menuMainMenuButtonHeight = height;
+        // Store button bounds based on button text
+        if ("RESUME".equals(text)) {
+            menuResumeButtonX = x;
+            menuResumeButtonY = y;
+            menuResumeButtonWidth = width;
+            menuResumeButtonHeight = height;
+        } else if ("MAIN MENU".equals(text)) {
+            menuMainMenuButtonX = x;
+            menuMainMenuButtonY = y;
+            menuMainMenuButtonWidth = width;
+            menuMainMenuButtonHeight = height;
+        }
         
         // Button background
         gc.setFill(Color.web("#220606"));
         gc.fillRoundRect(x, y, width, height, 10, 10);
         
         // Button border
-        gc.setStroke(Color.web("#4b2a20"));
+        gc.setStroke(Color.web("#E8A36B"));
         gc.setLineWidth(2);
         gc.strokeRoundRect(x, y, width, height, 10, 10);
         
         // Button text
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", 18));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 18));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText(text, x + width / 2, y + height / 2 + 6);
     }
-<<<<<<< HEAD
     
     private void renderGameUI() {
-        // Draw score at top right
-        double scoreX = WINDOW_WIDTH - 30;
-        double scoreY = 50;
+        // Margin dari tepi layar
+        double margin = 20;
         
+        // --- SCORE PANEL (Top Right) ---
+        double scoreBoxX = WINDOW_WIDTH - 180 - margin;
+        double scoreBoxY = margin;
+        double scoreBoxWidth = 160;
+        double scoreBoxHeight = 100;
+        
+        // Score background box
+        gc.setFill(Color.web("#220606"));
+        gc.fillRoundRect(scoreBoxX, scoreBoxY, scoreBoxWidth, scoreBoxHeight, 10, 10);
+        
+        // Score border
+        gc.setStroke(Color.web("#4b2a20"));
+        gc.setLineWidth(2);
+        gc.strokeRoundRect(scoreBoxX, scoreBoxY, scoreBoxWidth, scoreBoxHeight, 10, 10);
+        
+        // Score label
         int currentScore = gameState.getScore().getCurrentScore();
-        
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 24));
-        gc.setTextAlign(javafx.scene.text.TextAlignment.RIGHT);
-        gc.fillText("Score", scoreX, scoreY);
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 16));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("SCORE", scoreBoxX + scoreBoxWidth / 2, scoreBoxY + 25);
         
-        gc.setFill(Color.web("#E8A36B"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 48));
-        gc.fillText(String.valueOf(currentScore), scoreX, scoreY + 50);
-        
-        // Draw timer at bottom right (simple time display only)
-        double timerX = WINDOW_WIDTH - 30;
-        double timerY = WINDOW_HEIGHT - 30;
-        
-        String timeText = gameState.getTimer().getFormattedRemainingTime();
+        // Score value
         gc.setFill(Color.web("#E8A36B"));
         gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 40));
-        gc.setTextAlign(javafx.scene.text.TextAlignment.RIGHT);
-        gc.fillText(timeText, timerX, timerY);
+        gc.fillText(String.valueOf(currentScore), scoreBoxX + scoreBoxWidth / 2, scoreBoxY + 75);
+        
+        // --- TIMER PANEL (Bottom Right) ---
+        double timerBoxX = WINDOW_WIDTH - 180 - margin;
+        double timerBoxY = WINDOW_HEIGHT - 100 - margin;
+        double timerBoxWidth = 160;
+        double timerBoxHeight = 80;
+        
+        // Timer background box
+        gc.setFill(Color.web("#220606"));
+        gc.fillRoundRect(timerBoxX, timerBoxY, timerBoxWidth, timerBoxHeight, 10, 10);
+        
+        // Timer border
+        gc.setStroke(Color.web("#4b2a20"));
+        gc.setLineWidth(2);
+        gc.strokeRoundRect(timerBoxX, timerBoxY, timerBoxWidth, timerBoxHeight, 10, 10);
+        
+        // Timer label
+        gc.setFill(Color.web("#F2C38F"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 14));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("TIME", timerBoxX + timerBoxWidth / 2, timerBoxY + 20);
+        
+        // Timer value
+        String timeText = gameState.getTimer().getFormattedRemainingTime();
+        gc.setFill(Color.web("#E8A36B"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 36));
+        gc.fillText(timeText, timerBoxX + timerBoxWidth / 2, timerBoxY + 65);
     }
     
     private void showResultScreen() {
@@ -995,6 +1183,3 @@ public class GameScreen {
         resultScreen.start();
     }
 }
-=======
-}
->>>>>>> feat/station
