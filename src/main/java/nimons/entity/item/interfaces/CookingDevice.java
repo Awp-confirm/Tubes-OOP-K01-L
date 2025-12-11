@@ -1,5 +1,8 @@
 package nimons.entity.item.interfaces;
 
+import nimons.exceptions.InvalidIngredientStateException;
+import nimons.exceptions.StationFullException;
+
 public interface CookingDevice {
 
     boolean isPortable();
@@ -8,7 +11,7 @@ public interface CookingDevice {
 
     boolean canAccept(Preparable ingredient);
 
-    void addIngredient(Preparable ingredient);
+    void addIngredient(Preparable ingredient) throws StationFullException, InvalidIngredientStateException;
 
     void startCooking();
 

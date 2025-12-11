@@ -1,5 +1,6 @@
 package nimons.entity.station;
 
+import nimons.core.GameConfig;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
@@ -13,9 +14,9 @@ import nimons.entity.item.interfaces.Preparable;
  */
 public class CuttingStation extends Station {
 
+    private static CuttingStation activeStation; // Track which station is currently being used
     private Item placedItem; 
     private float currentProgress = 0;
-    private final float REQUIRED_TIME = 3000; 
     private Chef currentCutter; 
 
     public CuttingStation(String name, Position position) {
@@ -29,11 +30,12 @@ public class CuttingStation extends Station {
 
     /**
      * Memajukan progress timer pemotongan jika ada Chef yang berinteraksi.
+     * Chef bisa bergerak, progress akan pause tapi tidak hilang.
      */
     @Override
     public void update(long deltaTime) {
-        // Logic Timer Berjalan: Hanya jika ada Chef yang berinteraksi.
-        if (currentCutter != null && placedItem instanceof Preparable) {
+        // Logic Timer Berjalan: Hanya jika ini adalah active station (atau belum ada active) DAN Chef busy
+        if ((activeStation == null || this == activeStation) && currentCutter != null && currentCutter.isBusy() && placedItem instanceof Preparable) {
             Preparable p = (Preparable) placedItem;
             
             // Validasi: Pastikan item masih bisa dipotong.
@@ -45,7 +47,7 @@ public class CuttingStation extends Station {
                 return;
             }
 
-            if (currentProgress >= REQUIRED_TIME) {
+            if (currentProgress >= GameConfig.CUTTING_REQUIRED_TIME_MS) {
                 // 1. Ubah state bahan (RAW -> CHOPPED)
                 p.chop();
                 
@@ -53,6 +55,7 @@ public class CuttingStation extends Station {
                 finishCutting();
             }
         }
+        // Jika chef bergerak (not busy), progress tetap ada tapi tidak bertambah
     }
     
     /** Helper untuk mereset state setelah pemotongan selesai/batal. */
@@ -65,8 +68,40 @@ public class CuttingStation extends Station {
             // LOG DIRAPIKAN
             log("INFO", "CUTTING STOPPED: Item reached final state.");
         }
+        if (activeStation == this) {
+            activeStation = null;
+        }
         currentCutter = null;
         currentProgress = 0; 
+    }
+    
+    /** Helper to reset progress when chef switches to another cutting station */
+    private void resetProgress() {
+        if (currentCutter != null) {
+            currentCutter.setBusy(false);
+            currentCutter = null;
+        }
+        currentProgress = 0;
+        log("INFO", "CUTTING RESET: Progress cleared due to station switch.");
+    }
+    
+    /**
+     * Return progress ratio for rendering progress bar (0.0 to 1.0)
+     */
+    @Override
+    public float getProgressRatio() {
+        if (currentProgress > 0 && placedItem instanceof Preparable) {
+            return Math.min(1.0f, currentProgress / GameConfig.CUTTING_REQUIRED_TIME_MS);
+        }
+        return 0.0f;
+    }
+    
+    /**
+     * Return true if cutting is in progress
+     */
+    @Override
+    public boolean isActive() {
+        return currentProgress > 0 && currentProgress < GameConfig.CUTTING_REQUIRED_TIME_MS;
     }
 
 
@@ -114,12 +149,15 @@ public class CuttingStation extends Station {
         }
         // -----------------------------------------------------------------------------
         
-        // SCENARIO 4: BATALKAN/PAUSE CUTTING (Chef-in-Progress)
+        // SCENARIO 4: PAUSE CUTTING (Chef releases but progress kept)
         if (chef.isBusy() && chef == currentCutter) {
             currentCutter.setBusy(false); 
-            currentCutter = null; 
-            // LOG DIRAPIKAN
-            log("INFO", "PAUSED: Chopping stopped (Progress kept: " + (int)currentProgress + "ms).");
+            // Clear activeStation so chef can resume at this station later
+            if (activeStation == this) {
+                activeStation = null;
+            }
+            // Don't reset currentCutter, keep progress
+            log("INFO", "PAUSED: Chopping paused (Progress kept: " + (int)currentProgress + "ms). Can resume anytime.");
             return; 
         }
 
@@ -142,14 +180,23 @@ public class CuttingStation extends Station {
             return;
         }
         
-        // SCENARIO 1: AKSI MEMOTONG (Chop Start) - PRIORITAS TINGGI
+        // SCENARIO 1: AKSI MEMOTONG (Chop Start/Resume) - PRIORITAS TINGGI
         if (itemHand == null && placedItem instanceof Preparable) {
             Preparable p = (Preparable) placedItem;
             if (p.canBeChopped()) {
+                // If switching to a different station, reset the previous station's progress
+                if (activeStation != null && activeStation != this) {
+                    activeStation.resetProgress();
+                }
+                activeStation = this;
+                
                 this.currentCutter = chef;
-                chef.setBusy(true); 
-                // LOG DIRAPIKAN
-                log("ACTION", "START CUTTING: Chef begins chopping " + placedItem.getName() + ".");
+                chef.setBusy(true);
+                if (currentProgress > 0) {
+                    log("INFO", "RESUMED: Chopping resumed from " + (int)currentProgress + "ms.");
+                } else {
+                    log("ACTION", "STARTED: Chopping " + placedItem.getName() + "...");
+                }
                 return; 
             } else {
                 // LOG DIRAPIKAN
@@ -167,25 +214,5 @@ public class CuttingStation extends Station {
         }
 
         log("INFO", "Invalid interaction scenario.");
-    }
-
-    /**
-     * Mengimplementasikan getProgressRatio() (0.0 - 1.0) untuk cutting progress.
-     */
-    @Override
-    public float getProgressRatio() {
-        if (REQUIRED_TIME == 0 || placedItem == null || currentCutter == null) {
-            return 0.0f;
-        }
-        return Math.min(1.0f, currentProgress / REQUIRED_TIME);
-    }
-    
-    /**
-     * Mengimplementasikan isActive() yang lebih spesifik untuk CuttingStation.
-     */
-    @Override
-    public boolean isActive() {
-        // Aktif jika ada Chef, ada item, dan sedang dipotong
-        return currentCutter != null && placedItem != null && currentProgress < REQUIRED_TIME;
     }
 }

@@ -2,6 +2,7 @@ package nimons.entity.station;
 
 import java.util.Stack;
 
+import nimons.core.GameConfig;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
@@ -17,7 +18,6 @@ public class PlateStorageStation extends Station {
     private static PlateStorageStation instance;
     
     private Stack<Plate> plates; 
-    private final int INITIAL_STOCK = 5;
 
     public PlateStorageStation(String name, Position position) {
         super(name, position);
@@ -32,14 +32,24 @@ public class PlateStorageStation extends Station {
         this.plates = new Stack<>();
         
         // Mengisi stok awal
-        for (int i = 0; i < INITIAL_STOCK; i++) {
+        for (int i = 0; i < GameConfig.INITIAL_PLATE_STOCK; i++) {
             plates.push(new Plate()); 
         }
-        log("INFO", "INITIAL STOCK: " + INITIAL_STOCK + " clean plates available.");
+        log("INFO", "INITIAL STOCK: " + GameConfig.INITIAL_PLATE_STOCK + " clean plates available.");
     }
 
     public static PlateStorageStation getInstance() {
         return instance;
+    }
+    
+    /**
+     * Reset singleton instance for game restart
+     */
+    public static void resetInstance() {
+        if (instance != null) {
+            System.out.println("[PlateStorageStation] Resetting singleton instance");
+            instance = null;
+        }
     }
 
     /**
@@ -59,6 +69,7 @@ public class PlateStorageStation extends Station {
 
             // Cek piring paling atas
             Plate topPlate = plates.peek();
+            log("DEBUG", "Top plate is: " + (topPlate.isClean() ? "CLEAN" : "DIRTY"));
 
             // RESTRIKSI GDD: Plate bersih TIDAK bisa diambil jika Plate di atasnya kotor.
             
@@ -68,7 +79,7 @@ public class PlateStorageStation extends Station {
                 
                 // --- LOGGING AKURAT KASUS A ---
                 long cleanCount = plates.stream().filter(Plate::isClean).count();
-                log("ACTION", "TAKEN: Clean Plate. Remaining Clean: " + cleanCount + ". Total: " + plates.size());
+                log("ACTION", "TAKEN: Clean Plate from top. Remaining Clean: " + cleanCount + ". Total: " + plates.size());
                 return;
             } else {
                 // KASUS B: Ambil Plate Kotor yang memblokir.
@@ -79,7 +90,7 @@ public class PlateStorageStation extends Station {
                 long dirtyCount = plates.stream().filter(p -> !p.isClean()).count();
                 long cleanCount = totalCount - dirtyCount;
                 
-                log("ACTION", "TAKEN: Dirty Plate (for washing). Remaining Dirty: " + dirtyCount + ". Remaining Clean: " + cleanCount + ". Total: " + totalCount);
+                log("ACTION", "TAKEN: Dirty Plate from top (blocking clean plates). Remaining Dirty: " + dirtyCount + ". Remaining Clean: " + cleanCount + ". Total: " + totalCount);
                 return;
             }
         }
@@ -93,12 +104,27 @@ public class PlateStorageStation extends Station {
      */
     public void addPlateToStack(Plate p) {
         if (p != null) {
-            plates.push(p);
-            
             String status = p.isClean() ? "Clean" : "Dirty";
             
-            // Log Internal
-            log("INFO", "RETURNED: " + status + " plate added automatically to stack. Total: " + plates.size());
+            plates.push(p);
+            
+            // Count dirty and clean plates in stack
+            long dirtyCount = plates.stream().filter(plate -> !plate.isClean()).count();
+            long cleanCount = plates.stream().filter(Plate::isClean).count();
+            
+            // Detailed log
+            log("INFO", "RETURNED: " + status + " plate added to TOP of stack. Total: " + plates.size() + " (Dirty: " + dirtyCount + ", Clean: " + cleanCount + ")");
+            
+            // Show top 3 plates status for debugging
+            if (plates.size() > 0) {
+                StringBuilder topPlates = new StringBuilder("Top 3 plates: ");
+                int count = Math.min(3, plates.size());
+                for (int i = plates.size() - 1; i >= plates.size() - count; i--) {
+                    Plate plate = plates.get(i);
+                    topPlates.append(plate.isClean() ? "C" : "D").append(" ");
+                }
+                log("DEBUG", topPlates.toString());
+            }
         }
     }
     

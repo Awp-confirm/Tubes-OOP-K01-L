@@ -11,27 +11,29 @@ public class Shrimp extends Ingredient {
 
     @Override
     public boolean canBeChopped() {
-        return false; // Shrimp tidak perlu dipotong
+        return getState() == IngredientState.RAW; // Shrimp perlu dipotong dulu
     }
 
     @Override
     public boolean canBeCooked() {
-        return getState() == IngredientState.RAW;
+        return getState() == IngredientState.CHOPPED; // Shrimp hanya bisa dimasak setelah CHOPPED
     }
 
     @Override
     public boolean canBePlacedOnPlate() {
-        return getState() == IngredientState.COOKED;
+        return getState() == IngredientState.COOKED; // Shrimp yang sudah dimasak bisa diletakkan di plate
     }
 
     @Override
     public void chop() {
-        // Shrimp tidak bisa dipotong
+        if (getState() == IngredientState.RAW) {
+            setState(IngredientState.CHOPPED);
+        }
     }
 
     @Override
     public void cook() {
-        if (getState() == IngredientState.RAW) {
+        if (getState() == IngredientState.CHOPPED) {
             // HANYA SET STATE KE COOKING untuk memulai timer
             setState(IngredientState.COOKING);
             // Reset progress jika ada

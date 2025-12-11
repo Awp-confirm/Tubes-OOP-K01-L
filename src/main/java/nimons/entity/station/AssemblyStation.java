@@ -10,8 +10,10 @@ import nimons.entity.item.Ingredient;
 import nimons.entity.item.Item;
 import nimons.entity.item.KitchenUtensil;
 import nimons.entity.item.Plate;
-import nimons.entity.item.interfaces.Preparable; 
-import nimons.logic.recipe.RecipeManager; 
+import nimons.entity.item.interfaces.Preparable;
+import nimons.exceptions.InvalidIngredientStateException;
+import nimons.exceptions.RecipeNotFoundException;
+import nimons.logic.recipe.RecipeManager;
 
 /**
  * AssemblyStation (A): Stasiun utama untuk merakit Dish kompleks.
@@ -29,15 +31,17 @@ public class AssemblyStation extends Station {
      * Assembly Lanjutan: Menambahkan Ingredient ke Dish yang sudah ada di Plate.
      * Mencocokkan komponen dengan resep final (RecipeManager).
      */
-    private boolean attemptAssembly(Plate piring, Preparable itemToAdd) {
+    private boolean attemptAssembly(Plate piring, Preparable itemToAdd) throws InvalidIngredientStateException, RecipeNotFoundException {
         if (!piring.isClean() || !(itemToAdd instanceof Ingredient)) {
-            return false;
+            throw new InvalidIngredientStateException("Plate", "dirty or invalid", "clean plate with valid ingredient");
         }
 
         Dish currentDish = piring.getFood();
         Ingredient ingredientToAdd = (Ingredient) itemToAdd;
         
-        if (currentDish == null) { return false; }
+        if (currentDish == null) { 
+            throw new InvalidIngredientStateException("Dish", "null", "existing dish on plate");
+        }
 
         if (currentDish.canAddIngredient(ingredientToAdd)) {
             currentDish.addIngredient(ingredientToAdd);
@@ -110,15 +114,23 @@ public class AssemblyStation extends Station {
                     } 
                     
                     // Assembly Lanjutan
-                    if (attemptAssembly(piringTable, isiPreparable)) {
-                        utensilHand.getContents().clear();
-                        chef.setInventory(utensilHand); 
-                        this.placedItem = piringTable; 
-                        
-                        log("SUCCESS", "ASSEMBLY: Component added. Current Dish: " + piringTable.getFood().getName()); 
+                    try {
+                        if (attemptAssembly(piringTable, isiPreparable)) {
+                            utensilHand.getContents().clear();
+                            chef.setInventory(utensilHand); 
+                            this.placedItem = piringTable; 
+                            
+                            log("SUCCESS", "ASSEMBLY: Component added. Current Dish: " + piringTable.getFood().getName()); 
+                            return;
+                        } else {
+                            log("FAIL", "COMBINATION REJECTED: Recipe mismatch or plate is full.");
+                            return;
+                        }
+                    } catch (InvalidIngredientStateException e) {
+                        log("FAIL", "✗ Assembly failed: " + e.getMessage());
                         return;
-                    } else {
-                        log("FAIL", "COMBINATION REJECTED: Recipe mismatch or plate is full.");
+                    } catch (RecipeNotFoundException e) {
+                        log("FAIL", "✗ Recipe not found: " + e.getMessage());
                         return;
                     }
                 } else {
@@ -167,15 +179,22 @@ public class AssemblyStation extends Station {
                         log("SUCCESS", "PLATED: Initial ingredient added to plate.");
                         return;
                     }
-                    
                 } else {
                     // 4b. Kombinasi Lanjutan (Plate sudah ada isinya)
-                    if (attemptAssembly(piring, ingredientHand)) {
-                        chef.setInventory(null);
-                        log("SUCCESS", "ASSEMBLY: Component added. Current Dish: " + piring.getFood().getName());
+                    try {
+                        if (attemptAssembly(piring, ingredientHand)) {
+                            chef.setInventory(null);
+                            log("SUCCESS", "ASSEMBLY: Component added. Current Dish: " + piring.getFood().getName());
+                            return;
+                        } else {
+                            log("FAIL", "COMBINATION REJECTED: " + ingredientHand.getName() + " is invalid for current dish.");
+                            return;
+                        }
+                    } catch (InvalidIngredientStateException e) {
+                        log("FAIL", "Assembly error: " + e.getIngredientName() + " (state: " + e.getCurrentState() + ", need: " + e.getRequiredState() + ")");
                         return;
-                    } else {
-                        log("FAIL", "COMBINATION REJECTED: " + ingredientHand.getName() + " is invalid for current dish.");
+                    } catch (RecipeNotFoundException e) {
+                        log("FAIL", "No matching recipe for this combination");
                         return;
                     }
                 }

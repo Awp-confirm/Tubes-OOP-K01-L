@@ -3,7 +3,6 @@ package nimons.entity.station;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
-import nimons.entity.item.KitchenUtensil;
 import nimons.entity.item.Plate;
 import nimons.entity.item.ingredient.Cucumber; 
 import nimons.entity.item.ingredient.Fish;
@@ -15,10 +14,12 @@ import nimons.entity.item.interfaces.Preparable;
 /**
  * IngredientStorageStation (I): Bertindak sebagai dispenser bahan mentah tak terbatas.
  * Chef dapat mengambil bahan (Pick Up) atau Plating langsung (Hand: Plate).
+ * Juga dapat digunakan sebagai assembly station untuk meletakkan plate/ingredients.
  */
 public class IngredientStorageStation extends Station {
     
     private Item storedItem; // Dummy item (untuk display GUI dan menentukan tipe bahan yang didispense)
+    private Item placedItem; // Item yang ditempatkan di atas meja (untuk assembly)
 
     /**
      * CONSTRUCTOR: Menetapkan tipe bahan berdasarkan koordinat X dan Y di peta.
@@ -63,16 +64,38 @@ public class IngredientStorageStation extends Station {
     public void onInteract(Chef chef) {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
+        Item itemTable = this.placedItem;
 
-        // --- SCENARIO KRITIS BARU: PLATING UTENSIL $\rightarrow$ PIRING DI TANGAN ---
-        // Blokir semua logic Utensil di Storage, karena Storage hanya untuk mengambil bahan.
-        if (itemHand instanceof KitchenUtensil && this.storedItem instanceof Preparable) {
-            log("FAIL", "Ingredient Storage hanya untuk mengambil bahan mentah.");
-            return; 
+        // SCENARIO 1: Pick up item from table
+        if (itemHand == null && itemTable != null) {
+            chef.setInventory(itemTable);
+            this.placedItem = null;
+            log("ACTION", "PICKED UP: " + itemTable.getName() + " from table.");
+            return;
         }
 
-        // SCENARIO 1: PLATING LANGSUNG DARI STORAGE (Hand: Plate)
-        if (itemHand instanceof Plate) {
+        // SCENARIO 2: Place Plate on table (for assembly)
+        if (itemHand instanceof Plate && itemTable == null) {
+            this.placedItem = itemHand;
+            chef.setInventory(null);
+            log("ACTION", "PLACED: Plate on table.");
+            return;
+        }
+
+        // SCENARIO 3: Add ingredient from storage to plate on table
+        if (itemHand == null && itemTable instanceof Plate) {
+            Plate p = (Plate) itemTable;
+            Item bahanBaru = spawnItem();
+            
+            if (bahanBaru != null && bahanBaru instanceof Preparable) {
+                processPlating(p, bahanBaru);
+                log("ACTION", "ADDED: " + bahanBaru.getName() + " to plate on table.");
+            }
+            return;
+        }
+
+        // SCENARIO 4: PLATING LANGSUNG DARI STORAGE (Hand: Plate, Table: Empty)
+        if (itemHand instanceof Plate && itemTable == null) {
             Plate p = (Plate) itemHand;
             
             if (p.getFood() == null) { 
@@ -80,7 +103,7 @@ public class IngredientStorageStation extends Station {
                 
                 if (bahanBaru != null) {
                     processPlating(p, bahanBaru); // Memanggil Plating dari Base Class
-                    log("ACTION", "PLATED: " + bahanBaru.getName() + " langsung ke piring.");
+                    log("ACTION", "PLATED: " + bahanBaru.getName() + " to plate in hand.");
                 } else {
                     log("FAIL", "Cannot instantiate item type: " + this.name + ".");
                 }
@@ -90,8 +113,8 @@ public class IngredientStorageStation extends Station {
             return; 
         }
 
-        // SCENARIO 2: AMBIL BAHAN (Hand: Kosong)
-        if (itemHand == null) {
+        // SCENARIO 5: AMBIL BAHAN BARU (Hand: Kosong, Table: Anything)
+        if (itemHand == null && itemTable == null) {
             Item bahanBaru = spawnItem();
             if (bahanBaru != null) {
                 chef.setInventory(bahanBaru);
@@ -102,11 +125,16 @@ public class IngredientStorageStation extends Station {
             return;
         }
         
-        // SCENARIO 3: DROP ITEM (Jika tangan penuh dan bukan Plate)
-        if (itemHand != null) {
-            log("INFO", "Hand is full. Storage only dispenses ingredients.");
+        // SCENARIO 6: Place ingredient on empty table
+        if (itemHand instanceof Preparable && itemTable == null) {
+            this.placedItem = itemHand;
+            chef.setInventory(null);
+            log("ACTION", "PLACED: " + itemHand.getName() + " on table.");
             return;
         }
+        
+        // Default: Hand is full or invalid operation
+        log("INFO", "Cannot perform action. Hand: " + (itemHand != null ? itemHand.getName() : "empty") + ", Table: " + (itemTable != null ? itemTable.getName() : "empty"));
     }
     
     /** Menginstansiasi objek Item baru dari tipe yang tersimpan (Dispenser). */
@@ -119,5 +147,7 @@ public class IngredientStorageStation extends Station {
         return null; 
     }
 
-    public Item getPlacedItem() { return storedItem; }
+    public Item getStoredItem() { return storedItem; }
+    
+    public Item getPlacedItem() { return placedItem; }
 }
