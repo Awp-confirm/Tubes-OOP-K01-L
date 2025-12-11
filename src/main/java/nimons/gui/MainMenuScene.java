@@ -140,17 +140,24 @@ public class MainMenuScene {
     }
 
     private void handlePlay() {
-        System.out.println("Play pressed — starting game...");
-        GameScreen gameScreen = new GameScreen(stage);
-        gameScreen.start();
+        System.out.println("Opening stage select...");
+        javafx.scene.Scene currentScene = stage.getScene();
+        StageSelectScreen stageSelect = new StageSelectScreen(stage, currentScene);
+        stageSelect.show();
     }
 
     private void handleSettings() {
-        System.out.println("Open settings...");
+        System.out.println("Opening settings...");
+        javafx.scene.Scene currentScene = stage.getScene();
+        SettingsScreen settingsScreen = new SettingsScreen(stage, currentScene);
+        settingsScreen.show();
     }
 
     private void handleHelp() {
-        System.out.println("Open help...");
+        System.out.println("Opening help screen...");
+        javafx.scene.Scene currentScene = stage.getScene();
+        HelpScreen helpScreen = new HelpScreen(stage, currentScene);
+        helpScreen.show();
     }
 
     private void handleExit() {

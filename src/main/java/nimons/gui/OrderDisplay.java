@@ -1,49 +1,58 @@
 package nimons.gui;
 
 import java.util.List;
+import java.util.Map;
 
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
+import nimons.entity.item.IngredientState;
 import nimons.entity.order.IngredientRequirement;
 import nimons.entity.order.Order;
 
 public class OrderDisplay {
     
-    // Horizontal card dimensions
-    private static final double CARD_WIDTH = 280;
-    private static final double CARD_HEIGHT = 100;
+    // Vertical card dimensions (changed from horizontal)
+    private static final double CARD_WIDTH = 180;
+    private static final double CARD_HEIGHT = 180;
     private static final double CARD_SPACING = 15;
-    private static final double MARGIN = 20;
+    private static final double MARGIN_LEFT = 20; // Left margin for positioning
     
     // Internal card layout
     private static final double TIMER_BAR_HEIGHT = 12;
     private static final double DISH_ICON_SIZE = 50;
-    private static final double INGREDIENT_ICON_SIZE = 30;
+    private static final double INGREDIENT_ICON_SIZE = 28;
     
-    public static void renderOrders(GraphicsContext gc, List<Order> orders, double windowWidth, double startY) {
+    public static void renderOrders(GraphicsContext gc, List<Order> orders, double windowWidth, double startY, Map<String, Image> itemImages) {
         if (orders == null || orders.isEmpty()) {
             return;
         }
-        double margin = 20;
-        double startX = margin;
-        int maxDisplay = Math.min(5, orders.size());
+        // Position on left side of screen
+        double startX = MARGIN_LEFT;
+        int maxDisplay = Math.min(3, orders.size());
         for (int i = 0; i < maxDisplay; i++) {
-            double cardX = startX + (i * (CARD_WIDTH + CARD_SPACING));
-            renderOrderCard(gc, orders.get(i), cardX, startY);
+            double cardY = startY + (i * (CARD_HEIGHT + CARD_SPACING));
+            renderOrderCard(gc, orders.get(i), startX, cardY, itemImages);
         }
     }
     
     /**
-     * Render single order card horizontally
+     * Render single order card vertically
      * Layout: [Timer Bar] [Dish Icon] [Ingredients Horizontal]
      */
-    private static void renderOrderCard(GraphicsContext gc, Order order, double x, double y) {
+    private static void renderOrderCard(GraphicsContext gc, Order order, double x, double y, Map<String, Image> itemImages) {
         if (order == null) {
             return;
         }
+        
+        // Get opacity for fade in/out animation
+        double opacity = order.getOpacity();
+        
+        // Save current state
+        gc.save();
+        gc.setGlobalAlpha(opacity);
         
         // Background
         gc.setFill(Color.web("#220606"));
@@ -57,20 +66,17 @@ public class OrderDisplay {
         // Timer bar at top (full width)
         renderTimerBar(gc, order, x, y);
         
-        // Left section: Dish icon (placeholder)
-        double dishIconX = x + 10;
-        double dishIconY = y + TIMER_BAR_HEIGHT + 10;
+        // Dish icon/placeholder (centered)
+        double dishIconX = x + (CARD_WIDTH - DISH_ICON_SIZE) / 2;
+        double dishIconY = y + TIMER_BAR_HEIGHT + 20;
         renderDishIcon(gc, order, dishIconX, dishIconY);
         
-        // Middle section: Recipe name
-        double recipeNameX = dishIconX + DISH_ICON_SIZE + 12;
-        double recipeNameY = dishIconY + 15;
-        renderRecipeName(gc, order, recipeNameX, recipeNameY);
+        // Ingredients displayed horizontally (centered below dish)
+        double ingredientsY = dishIconY + DISH_ICON_SIZE + 35;
+        renderIngredientsHorizontal(gc, order, x, ingredientsY, itemImages);
         
-        // Right section: Ingredients icons horizontal
-        double ingredientsX = recipeNameX;
-        double ingredientsY = recipeNameY + 20;
-        renderIngredientsHorizontal(gc, order, ingredientsX, ingredientsY);
+        // Restore graphics context
+        gc.restore();
     }
     
     /**
@@ -101,114 +107,174 @@ public class OrderDisplay {
             progressColor = Color.web("#e74c3c"); // Red
         }
         
-        // Draw progress bar
+        // Progress bar
         gc.setFill(progressColor);
         gc.fillRect(barX, barY, barWidth * timeRatio, barHeight);
         
         // Border
-        gc.setStroke(Color.web("#888888"));
+        gc.setStroke(Color.web("#E8A36B"));
         gc.setLineWidth(1);
         gc.strokeRect(barX, barY, barWidth, barHeight);
-        
-        // Time text on the right of bar
-        gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", FontWeight.BOLD, 9));
-        gc.setTextAlign(TextAlignment.RIGHT);
-        int seconds = (int) Math.ceil(remainingTime);
-        gc.fillText(seconds + "s", barX + barWidth - 3, barY + barHeight - 2);
     }
     
-    /**
-     * Render dish icon (placeholder)
-     */
+
     private static void renderDishIcon(GraphicsContext gc, Order order, double x, double y) {
-        // Placeholder: colored circle
-        gc.setFill(Color.web("#D4A574"));
+        // Dish background circle (placeholder)
+        gc.setFill(Color.web("#3a0f0f"));
         gc.fillOval(x, y, DISH_ICON_SIZE, DISH_ICON_SIZE);
         
         // Border
         gc.setStroke(Color.web("#E8A36B"));
-        gc.setLineWidth(1.5);
+        gc.setLineWidth(2);
         gc.strokeOval(x, y, DISH_ICON_SIZE, DISH_ICON_SIZE);
         
-        // Icon text (D for Dish)
-        gc.setFill(Color.WHITE);
-        gc.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.fillText("D", x + DISH_ICON_SIZE / 2, y + DISH_ICON_SIZE / 2 + 5);
-    }
-    
-    /**
-     * Render recipe name
-     */
-    private static void renderRecipeName(GraphicsContext gc, Order order, double x, double y) {
-        if (order.getRecipe() == null) {
-            return;
-        }
+        // Plate icon (inner circle)
+        gc.setFill(Color.web("#D4A574"));
+        gc.fillOval(x + 8, y + 8, DISH_ICON_SIZE - 16, DISH_ICON_SIZE - 16);
         
-        String dishName = order.getRecipe().getName();
-        gc.setFill(Color.web("#E8A36B"));
-        gc.setFont(Font.font("Arial", FontWeight.BOLD, 11));
-        gc.setTextAlign(TextAlignment.LEFT);
-        gc.fillText(dishName, x, y);
+        // Recipe name with larger font and centered
+        if (order.getRecipe() != null) {
+            String recipeName = order.getRecipe().getName();
+            gc.setFill(Color.web("#F2C38F"));
+            gc.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+            gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+            
+            // Center text below icon (use center of icon as reference)
+            double centerX = x + (DISH_ICON_SIZE / 2);
+            double textY = y + DISH_ICON_SIZE + 18;
+            
+            // Display full recipe name
+            gc.fillText(recipeName, centerX, textY);
+            
+            // Reset text alignment
+            gc.setTextAlign(javafx.scene.text.TextAlignment.LEFT);
+        }
     }
     
     /**
-     * Render ingredients as horizontal list
+     * Render ingredients horizontally with actual images and names
      */
-    private static void renderIngredientsHorizontal(GraphicsContext gc, Order order, double x, double y) {
-        if (order.getRecipe() == null || order.getRecipe().getRequirements() == null) {
+    private static void renderIngredientsHorizontal(GraphicsContext gc, Order order, double cardX, double y, Map<String, Image> itemImages) {
+        if (order == null || order.getRecipe() == null) {
             return;
         }
         
         List<IngredientRequirement> requirements = order.getRecipe().getRequirements();
-        double currentX = x;
-        double iconSpacing = INGREDIENT_ICON_SIZE + 5;
+        if (requirements == null || requirements.isEmpty()) {
+            return;
+        }
         
-        // Limit display ke 3 ingredients (untuk space)
-        int maxDisplay = Math.min(3, requirements.size());
+        // Calculate total width to center ingredients
+        int displayCount = Math.min(4, requirements.size()); // Max 4 ingredients
+        double iconSpacing = 5;
+        double totalWidth = (displayCount * INGREDIENT_ICON_SIZE) + ((displayCount - 1) * iconSpacing);
+        double startX = cardX + (CARD_WIDTH - totalWidth) / 2;
         
-        for (int i = 0; i < maxDisplay; i++) {
-            double iconX = currentX;
-            double iconY = y;
-            
-            // Ingredient icon (small square)
+        double currentX = startX;
+        
+        for (int i = 0; i < displayCount; i++) {
             IngredientRequirement req = requirements.get(i);
-            gc.setFill(getIngredientColor(req.getIngredientType().getSimpleName()));
-            gc.fillRoundRect(iconX, iconY, INGREDIENT_ICON_SIZE, INGREDIENT_ICON_SIZE, 3, 3);
             
-            // Ingredient initial
-            String ingredientName = req.getIngredientType().getSimpleName();
-            String initial = ingredientName.substring(0, 1).toUpperCase();
+            // Get ingredient image key
+            String ingredientName = req.getIngredientType().getSimpleName().toLowerCase();
+            IngredientState state = req.getRequiredState();
+            String imageKey = getIngredientImageKey(ingredientName, state);
             
-            gc.setFill(Color.WHITE);
+            // Draw ingredient image if available
+            if (itemImages != null && itemImages.containsKey(imageKey)) {
+                Image img = itemImages.get(imageKey);
+                if (img != null) {
+                    gc.drawImage(img, currentX, y, INGREDIENT_ICON_SIZE, INGREDIENT_ICON_SIZE);
+                }
+            } else {
+                // Fallback to colored box if image not found
+                Color iconColor = getIngredientColor(ingredientName);
+                gc.setFill(iconColor);
+                gc.fillRoundRect(currentX, y, INGREDIENT_ICON_SIZE, INGREDIENT_ICON_SIZE, 4, 4);
+                
+                // Draw initial
+                String initial = ingredientName.substring(0, 1).toUpperCase();
+                gc.setFill(Color.WHITE);
+                gc.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+                gc.fillText(initial, currentX + 8, y + 19);
+            }
+            
+            // Border around ingredient
+            gc.setStroke(Color.web("#E8A36B"));
+            gc.setLineWidth(1.5);
+            gc.strokeRoundRect(currentX, y, INGREDIENT_ICON_SIZE, INGREDIENT_ICON_SIZE, 4, 4);
+            
+            // Draw ingredient name below icon
+            String displayName = capitalizeFirst(ingredientName);
+            gc.setFill(Color.web("#E8A36B"));
+            gc.setFont(Font.font("Arial", FontWeight.NORMAL, 8));
+            gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+            double textX = currentX + (INGREDIENT_ICON_SIZE / 2);
+            double textY = y + INGREDIENT_ICON_SIZE + 10;
+            gc.fillText(displayName, textX, textY);
+            gc.setTextAlign(javafx.scene.text.TextAlignment.LEFT);
+            
+            currentX += INGREDIENT_ICON_SIZE + iconSpacing;
+        }
+        
+        // Show "+N" if there are more ingredients
+        if (requirements.size() > displayCount) {
+            gc.setFill(Color.web("#E8A36B"));
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 10));
-            gc.setTextAlign(TextAlignment.CENTER);
-            gc.fillText(initial, iconX + INGREDIENT_ICON_SIZE / 2, 
-                       iconY + INGREDIENT_ICON_SIZE / 2 + 3);
-            
-            currentX += iconSpacing;
+            gc.fillText("+" + (requirements.size() - displayCount), currentX, y + 19);
         }
     }
     
+    /**
+     * Capitalize first letter of string
+     */
+    private static String capitalizeFirst(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+    
+    /**
+     * Get image key for ingredient based on name and state
+     */
+    private static String getIngredientImageKey(String ingredientName, IngredientState state) {
+        String stateStr = state.toString().toLowerCase();
+        
+        // Map state to image suffix
+        if (stateStr.equals("raw")) {
+            return ingredientName + "_raw";
+        } else if (stateStr.equals("chopped")) {
+            return ingredientName + "_chopped";
+        } else if (stateStr.equals("cooked")) {
+            return ingredientName + "_cooked";
+        } else if (stateStr.equals("burned")) {
+            return ingredientName + "_burned";
+        }
+        
+        return ingredientName + "_raw"; // Default
+    }
+    
+    /**
+     * Get color for ingredient type
+     */
     private static Color getIngredientColor(String ingredientName) {
-        // Return color based on ingredient type
         if (ingredientName == null) {
             return Color.web("#888888");
         }
         
         String lower = ingredientName.toLowerCase();
         
-        if (lower.contains("salmon") || lower.contains("tuna")) {
+        if (lower.contains("fish")) {
             return Color.web("#ff6b6b"); // Red
         } else if (lower.contains("rice")) {
             return Color.web("#fff3bf"); // Yellow
-        } else if (lower.contains("avocado") || lower.contains("cucumber")) {
+        } else if (lower.contains("cucumber")) {
             return Color.web("#51cf66"); // Green
-        } else if (lower.contains("soy") || lower.contains("sauce")) {
-            return Color.web("#495057"); // Dark gray
-        } else if (lower.contains("egg") || lower.contains("tobiko")) {
-            return Color.web("#ffa500"); // Orange
+        } else if (lower.contains("nori") || lower.contains("seaweed")) {
+            return Color.web("#2d3436"); // Dark green/black
+        } else if (lower.contains("shrimp") || lower.contains("prawn")) {
+            return Color.web("#fab1a0"); // Pink
         } else {
             return Color.web("#a29bfe"); // Purple (default)
         }
