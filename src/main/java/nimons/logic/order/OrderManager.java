@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import nimons.core.GameConfig;
 import nimons.entity.item.Dish;
 import nimons.entity.order.Order;
 import nimons.entity.order.OrderStatus;
 import nimons.entity.order.Recipe;
+import nimons.gui.GameScreen;
+import nimons.logic.GameState;
 
 public class OrderManager {
     
@@ -16,9 +19,9 @@ public class OrderManager {
     private final List<Recipe> availableRecipes;
     private int nextOrderIndex = 1;
     private final Random random = new Random();
-    private static final int MAX_ACTIVE_ORDERS = 5;
+    private static final int MAX_ACTIVE_ORDERS = 3;
     private long lastOrderTime = 0;
-    private static final long ORDER_SPAWN_INTERVAL = 20000; // 8 detik spawn order baru
+    private static final long ORDER_SPAWN_INTERVAL = 20000; // 20 detik spawn order baru
     
     private OrderManager() {
         this.activeOrders = new ArrayList<>();
@@ -44,20 +47,32 @@ public class OrderManager {
      * Update order timer dan cek timeout
      */
     public void update(long deltaTimeMs) {
-        // Update remaining time untuk semua active orders
-        for (Order order : activeOrders) {
-            if (order.getStatus() == OrderStatus.ACTIVE) {
-                double newRemaining = order.getRemainingTimeSeconds() - (deltaTimeMs / 1000.0);
-                order.setRemainingTimeSeconds(Math.max(0, newRemaining));
-                // Jika waktu habis, mark sebagai failed
-                if (order.getRemainingTimeSeconds() <= 0) {
-                    order.setStatus(OrderStatus.FAILED);
-                }
-            }
-        }
+        final GameState gameState = getGameState();
+        final double deltaSeconds = deltaTimeMs / 1000.0;
         
-        // Remove completed/failed orders
-        activeOrders.removeIf(order -> order.getStatus() != OrderStatus.ACTIVE);
+        activeOrders.removeIf(order -> {
+            order.updateAnimation();
+            
+            if (order.getStatus() == OrderStatus.ACTIVE) {
+                double newRemaining = order.getRemainingTimeSeconds() - deltaSeconds;
+                order.setRemainingTimeSeconds(Math.max(0, newRemaining));
+                
+                if (newRemaining <= 0) {
+                    order.setStatus(OrderStatus.FAILED);
+                    if (gameState != null) {
+                        gameState.loseLife();
+                    }
+                }
+                return false;
+            }
+            
+            return order.isFullyFaded();
+        });
+    }
+    
+    private GameState getGameState() {
+        GameScreen gameScreen = GameScreen.getInstance();
+        return gameScreen != null ? gameScreen.getGameState() : null;
     }
     
     /**
@@ -82,7 +97,7 @@ public class OrderManager {
         Recipe randomRecipe = availableRecipes.get(random.nextInt(availableRecipes.size()));
         int reward = 100 + random.nextInt(100); // 100-200 reward
         int penalty = -50;
-        int timeLimit = 60; // 60 detik per order
+        int timeLimit = GameConfig.ORDER_DURATION_SECONDS;
         
         Order newOrder = new Order(
             nextOrderIndex++,
