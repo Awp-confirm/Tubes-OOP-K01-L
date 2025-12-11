@@ -156,4 +156,14 @@ public class MainMenuScene {
     private void handleExit() {
         System.exit(0);
     }
+    
+    /**
+     * Display the main menu scene
+     */
+    public void start() {
+        javafx.scene.Scene scene = new javafx.scene.Scene(rootPane);
+        stage.setScene(scene);
+        stage.setTitle("Nimonscooked - Main Menu");
+        stage.show();
+    }
 }

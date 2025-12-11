@@ -30,6 +30,7 @@ import nimons.entity.station.PlateStorageStation;
 import nimons.entity.station.ServingStation;
 import nimons.entity.station.Station;
 import nimons.entity.station.WashingStation;
+import nimons.logic.GameState;
 
 public class GameScreen {
 
@@ -64,6 +65,9 @@ public class GameScreen {
     private long lastMoveTime = 0;
     private static final long MOVE_COOLDOWN = 150; // milliseconds
     
+    // Dash control
+    private boolean shiftPressed = false;
+    
     // Pause state
     private boolean isPaused = false;
     private long pauseStartTime = 0;
@@ -71,6 +75,9 @@ public class GameScreen {
     private double menuMainMenuButtonY = 0;
     private double menuMainMenuButtonWidth = 0;
     private double menuMainMenuButtonHeight = 0;
+    
+    // Game state (timer and score)
+    private GameState gameState;
     
     // Asset images
     private Image floorImage;
@@ -85,6 +92,9 @@ public class GameScreen {
         this.gc = canvas.getGraphicsContext2D();
         
         rootPane.getChildren().add(canvas);
+        
+        // Initialize game state (5 minutes timer, pass threshold 1000 points)
+        this.gameState = new GameState(300, 1000);
         
         // Load assets
         loadAssets();
@@ -105,44 +115,42 @@ public class GameScreen {
         floorImage = loadImage("/assets/picture/floor.png");
         System.out.println("Floor image loaded: " + (floorImage != null));
         
+        // Wall image - fallback ke floor jika tidak ada
         wallImage = loadImage("/assets/picture/wall.png");
-        System.out.println("Wall image loaded: " + (wallImage != null));
+        if (wallImage == null) {
+            wallImage = floorImage; // Use floor as fallback
+            System.out.println("Wall image using floor fallback");
+        } else {
+            System.out.println("Wall image loaded: " + (wallImage != null));
+        }
         
         // Load chef image
         chefImage = loadImage("/assets/picture/chef.png");
         System.out.println("Chef image loaded: " + (chefImage != null));
         
-        // Load station images
-        Image cookImg = loadImage("/assets/picture/cook.png");
-        if (cookImg != null) {
-            stationImages.put("cook", cookImg);
-            System.out.println("✓ cook.png loaded");
-        } else {
-            System.out.println("✗ cook.png FAILED");
-        }
-        
+        // Load station images - gunakan table.png sebagai default untuk semua station
         Image tableImg = loadImage("/assets/picture/table.png");
         if (tableImg != null) {
+            System.out.println("✓ table.png loaded (default for stations)");
+            // Set table sebagai default untuk semua station
             stationImages.put("table", tableImg);
-            System.out.println("✓ table.png loaded");
-        } else {
-            System.out.println("✗ table.png FAILED");
+            stationImages.put("cook", tableImg);
+            stationImages.put("serving", tableImg);
+            stationImages.put("wash", tableImg);
         }
         
-        Image servingImg = loadImage("/assets/picture/serving.png");
-        if (servingImg != null) {
-            stationImages.put("serving", servingImg);
-            System.out.println("✓ serving.png loaded");
-        } else {
-            System.out.println("✗ serving.png FAILED");
+        // Load CuttingStation image (override table if exists)
+        Image cuttingImg = loadImage("/assets/picture/CuttingStation.png");
+        if (cuttingImg != null) {
+            stationImages.put("cutting", cuttingImg);
+            System.out.println("✓ CuttingStation.png loaded");
         }
         
-        Image washImg = loadImage("/assets/picture/washstasion.png");
-        if (washImg != null) {
-            stationImages.put("wash", washImg);
-            System.out.println("✓ washstasion.png loaded");
-        } else {
-            System.out.println("✗ washstasion.png FAILED");
+        // Load Trash image
+        Image trashImg = loadImage("/assets/picture/Trash.png");
+        if (trashImg != null) {
+            stationImages.put("trash", trashImg);
+            System.out.println("✓ Trash.png loaded");
         }
         
         System.out.println("=== Assets Loading Complete ===");
@@ -267,6 +275,15 @@ public class GameScreen {
     }
 
     private void update(long deltaTime) {
+        // Check if game is over
+        if (gameState.isGameOver()) {
+            showResultScreen();
+            return;
+        }
+        
+        // Update game state
+        gameState.update();
+        
         // Skip update jika game di-pause
         if (isPaused) {
             return;
@@ -365,28 +382,19 @@ public class GameScreen {
                         gc.fillText(initial, screenX + tileSize * 0.4, screenY + tileSize * 0.6);
                     }
                 }
-                
-                // Draw spawn positions
-                if (spawnPositions != null) {
-                    for (Position spawn : spawnPositions) {
-                        if (spawn.getX() == x && spawn.getY() == y) {
-                            gc.setFill(Color.web("#4ecdc480")); // Semi-transparent
-                            double ovalPadding = tileSize * 0.2;
-                            gc.fillOval(screenX + ovalPadding, screenY + ovalPadding, 
-                                       tileSize - ovalPadding * 2, tileSize - ovalPadding * 2);
-                        }
-                    }
-                }
             }
         }
         
-        // Draw both chefs
+        // Draw both chefs (overlay di atas lantai)
         if (playerChef != null) {
             drawChef(playerChef, offsetX, offsetY, playerChef == activeChef);
         }
         if (chef2 != null) {
             drawChef(chef2, offsetX, offsetY, chef2 == activeChef);
         }
+        
+        // Render game UI (timer and score)
+        renderGameUI();
         
         // Render pause menu jika game di-pause
         if (isPaused) {
@@ -399,8 +407,8 @@ public class GameScreen {
             // R = Cooking Station (Stove/Oven)
             return stationImages.get("cook");
         } else if (station instanceof CuttingStation) {
-            // C = Cutting Station
-            return stationImages.get("table");
+            // C = Cutting Station - gunakan asset khusus
+            return stationImages.getOrDefault("cutting", stationImages.get("table"));
         } else if (station instanceof AssemblyStation) {
             // A = Assembly Station
             return stationImages.get("table");
@@ -417,8 +425,8 @@ public class GameScreen {
             // P = Plate Storage
             return stationImages.get("table");
         } else if (station instanceof nimons.entity.station.TrashStation) {
-            // T = Trash Station
-            return stationImages.get("table");
+            // T = Trash Station - gunakan asset khusus
+            return stationImages.getOrDefault("trash", stationImages.get("table"));
         }
         return null;
     }
@@ -476,6 +484,10 @@ public class GameScreen {
                     // Switch chef
                     switchChef();
                     break;
+                case SHIFT:
+                    // Hold shift for dash
+                    shiftPressed = true;
+                    break;
                 default:
                     break;
             }
@@ -494,6 +506,9 @@ public class GameScreen {
                     break;
                 case D:
                     moveRight = false;
+                    break;
+                case SHIFT:
+                    shiftPressed = false;
                     break;
                 default:
                     break;
@@ -527,6 +542,40 @@ public class GameScreen {
             Position currentPos = activeChef.getPosition();
             activeChef.setDirection(newDirection);
             
+            // Check if SHIFT pressed for dash
+            if (shiftPressed && !activeChef.isDashOnCooldown(currentTime)) {
+                // Perform dash (2 tiles)
+                Position dashTarget = activeChef.dash(newDirection, currentTime);
+                
+                if (dashTarget != null && tileManager.isWalkable(dashTarget)) {
+                    // Remove chef from old tile
+                    Tile oldTile = tileManager.getTileAt(currentPos);
+                    if (oldTile != null) {
+                        oldTile.setChefOnTile(null);
+                    }
+                    
+                    // Move to dash target
+                    activeChef.setPosition(dashTarget);
+                    
+                    // Update target position for smooth movement
+                    chefTargetX = dashTarget.getX();
+                    chefTargetY = dashTarget.getY();
+                    
+                    // Add chef to new tile
+                    Tile newTile = tileManager.getTileAt(dashTarget);
+                    if (newTile != null) {
+                        newTile.setChefOnTile(activeChef);
+                    }
+                    
+                    activeChef.setDashing(false);
+                    lastMoveTime = currentTime;
+                    
+                    System.out.println("Chef dashed to: (" + dashTarget.getX() + ", " + dashTarget.getY() + ")");
+                    return; // Exit after dash
+                }
+            }
+            
+            // Normal movement (1 tile)
             // Calculate new position
             int newX = currentPos.getX();
             int newY = currentPos.getY();
@@ -673,6 +722,9 @@ public class GameScreen {
         isPaused = !isPaused;
         if (isPaused) {
             pauseStartTime = System.currentTimeMillis();
+            gameState.pause();
+        } else {
+            gameState.resume();
         }
     }
     
@@ -746,5 +798,46 @@ public class GameScreen {
         gc.setFont(Font.font("Arial", 18));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText(text, x + width / 2, y + height / 2 + 6);
+    }
+    
+    private void renderGameUI() {
+        // Draw score at top right
+        double scoreX = WINDOW_WIDTH - 30;
+        double scoreY = 50;
+        
+        int currentScore = gameState.getScore().getCurrentScore();
+        
+        gc.setFill(Color.web("#F2C38F"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 24));
+        gc.setTextAlign(javafx.scene.text.TextAlignment.RIGHT);
+        gc.fillText("Score", scoreX, scoreY);
+        
+        gc.setFill(Color.web("#E8A36B"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 48));
+        gc.fillText(String.valueOf(currentScore), scoreX, scoreY + 50);
+        
+        // Draw timer at bottom right (simple time display only)
+        double timerX = WINDOW_WIDTH - 30;
+        double timerY = WINDOW_HEIGHT - 30;
+        
+        String timeText = gameState.getTimer().getFormattedRemainingTime();
+        gc.setFill(Color.web("#E8A36B"));
+        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 40));
+        gc.setTextAlign(javafx.scene.text.TextAlignment.RIGHT);
+        gc.fillText(timeText, timerX, timerY);
+    }
+    
+    private void showResultScreen() {
+        // Stop the game loop
+        gameLoop.stop();
+        
+        // Show result screen
+        ResultScreen resultScreen = new ResultScreen(
+            stage,
+            gameState.getScore().getCurrentScore(),
+            gameState.isPassed(),
+            gameState.getPassThreshold()
+        );
+        resultScreen.start();
     }
 }
