@@ -7,6 +7,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import nimons.logic.GameState.FailReason;
 
 /**
  * Result screen shown after game ends
@@ -23,6 +24,7 @@ public class ResultScreen {
     private int finalScore;
     private boolean isPassed;
     private String resultMessage;
+    private String failDescription;
     private int passThreshold;
     
     private double backButtonX = 0;
@@ -31,6 +33,10 @@ public class ResultScreen {
     private double backButtonHeight = 0;
 
     public ResultScreen(Stage stage, int finalScore, boolean isPassed, int passThreshold) {
+        this(stage, finalScore, isPassed, passThreshold, FailReason.NONE);
+    }
+    
+    public ResultScreen(Stage stage, int finalScore, boolean isPassed, int passThreshold, FailReason failReason) {
         this.stage = stage;
         this.rootPane = new StackPane();
         this.canvas = new Canvas(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -40,6 +46,7 @@ public class ResultScreen {
         this.isPassed = isPassed;
         this.passThreshold = passThreshold;
         this.resultMessage = isPassed ? "PASS" : "FAIL";
+        this.failDescription = getFailDescription(failReason, isPassed);
         
         rootPane.getChildren().add(canvas);
     }
@@ -99,8 +106,30 @@ public class ResultScreen {
         gc.setFont(Font.font("Arial", 20));
         drawCenteredText(gc, "Required: " + passThreshold, boxX + (boxWidth - 50) / 2, scoreStartY + 110);
         
+        // Fail description (if failed)
+        if (!isPassed && failDescription != null) {
+            gc.setFill(Color.web("#e74c3c"));
+            gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 18));
+            drawCenteredText(gc, failDescription, boxX + (boxWidth - 50) / 2, scoreStartY + 150);
+        }
+        
         // Back to menu button
         drawButton(gc, "Back to Menu", boxX + (boxWidth - 190) / 2, boxY + boxHeight - 120, 200, 50);
+    }
+    
+    private String getFailDescription(FailReason reason, boolean passed) {
+        if (passed) {
+            return null;
+        }
+        
+        switch (reason) {
+            case TIME_UP:
+                return "Time's Up! Not enough score before time ran out.";
+            case NO_LIVES:
+                return "No Lives Remaining! Too many mistakes.";
+            default:
+                return "Failed to reach target score.";
+        }
     }
 
     private void drawButton(GraphicsContext gc, String text, double x, double y, double width, double height) {
@@ -158,7 +187,12 @@ public class ResultScreen {
     }
 
     private void goToMainMenu() {
+        // Reset GameScreen singleton instance
+        GameScreen.resetInstance();
+        
         MainMenuScene menu = new MainMenuScene(stage);
-        menu.start();
+        Scene scene = new Scene(menu.rootPane, 1920, 1080);
+        stage.setScene(scene);
+        stage.show();
     }
 }

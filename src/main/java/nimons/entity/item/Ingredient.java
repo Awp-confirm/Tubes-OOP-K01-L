@@ -1,5 +1,6 @@
 package nimons.entity.item;
 
+import nimons.core.GameConfig;
 import nimons.entity.item.interfaces.Preparable;
 
 public abstract class Ingredient extends Item implements Preparable {
@@ -8,8 +9,6 @@ public abstract class Ingredient extends Item implements Preparable {
     
     // --- FIELD TIMER (Diasumsikan sudah benar) ---
     protected long currentCookTime = 0; // Waktu yang sudah berlalu (ms)
-    protected final long TIME_TO_COOK_MS = 5000;  // 5 detik untuk COOKED
-    protected final long TIME_TO_BURN_MS = 10000; // 10 detik tambahan untuk BURNED
     protected long lastLogTime = 0;
     // ------------------------------------
 
@@ -35,7 +34,7 @@ public abstract class Ingredient extends Item implements Preparable {
      * Mengembalikan total waktu yang dibutuhkan untuk mencapai state COOKED (ms).
      */
     public float getRequiredCookingTime() {
-        return (float) TIME_TO_COOK_MS;
+        return (float) GameConfig.TIME_TO_COOK_MS;
     }
     
     /**
@@ -43,7 +42,7 @@ public abstract class Ingredient extends Item implements Preparable {
      */
     public float getCurrentCookingTime() {
         // Hanya kembalikan waktu dalam fase COOKING (sampai 5000ms)
-        return (float) Math.min(currentCookTime, TIME_TO_COOK_MS); 
+        return (float) Math.min(currentCookTime, GameConfig.TIME_TO_COOK_MS); 
     }
     
     // ----------------------------------------------------------------------------------
@@ -62,8 +61,8 @@ public abstract class Ingredient extends Item implements Preparable {
             // --- LOGIKA PENCETAKAN PROGRESS (Setiap 1000ms/1 detik) ---
             if (currentCookTime - lastLogTime >= 1000) { 
                 
-                long totalTimeBase = TIME_TO_COOK_MS; 
-                long totalTimeBurn = TIME_TO_BURN_MS; 
+                long totalTimeBase = GameConfig.TIME_TO_COOK_MS; 
+                long totalTimeBurn = GameConfig.TIME_TO_BURN_MS; 
                 
                 long totalSeconds;
                 long secondsElapsed = currentCookTime / 1000;
@@ -91,7 +90,7 @@ public abstract class Ingredient extends Item implements Preparable {
             // ----------------------------------------------------------
 
             // Transisi State: COOKING -> COOKED
-            if (state == IngredientState.COOKING && currentCookTime >= TIME_TO_COOK_MS) {
+            if (state == IngredientState.COOKING && currentCookTime >= GameConfig.TIME_TO_COOK_MS) {
                 setState(IngredientState.COOKED);
                 
                 // lastLogTime direset agar log progress COOKED segera dimulai pada detik ke-6
@@ -101,7 +100,7 @@ public abstract class Ingredient extends Item implements Preparable {
             } 
             
             // Transisi State: COOKED -> BURNED
-            else if (state == IngredientState.COOKED && currentCookTime >= (TIME_TO_COOK_MS + TIME_TO_BURN_MS)) {
+            else if (state == IngredientState.COOKED && currentCookTime >= (GameConfig.TIME_TO_COOK_MS + GameConfig.TIME_TO_BURN_MS)) {
                 setState(IngredientState.BURNED);
                 // Log representatif:
                 logMessage = String.format("PROCESS FAILURE: %s is BURNED.", getName()); 

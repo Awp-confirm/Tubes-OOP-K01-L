@@ -12,14 +12,15 @@ import nimons.entity.item.Ingredient;
 import nimons.entity.item.IngredientState;
 import nimons.entity.item.Item;
 import nimons.entity.item.KitchenUtensil;
-import nimons.entity.item.Oven;
 import nimons.entity.item.Plate;
 import nimons.entity.item.interfaces.CookingDevice;
 import nimons.entity.item.interfaces.Preparable;
+import nimons.exceptions.InvalidIngredientStateException;
+import nimons.exceptions.StationFullException;
 
 /**
- * CookingStation: Menangani pemrosesan Ingredient (memasak/menggoreng/memanggang).
- * Setiap stasiun memiliki Utensil Cooking statis (BoilingPot/FryingPan/Oven).
+ * CookingStation: Menangani pemrosesan Ingredient (memasak/menggoreng).
+ * Setiap stasiun memiliki Utensil Cooking statis (BoilingPot/FryingPan).
  */
 public class CookingStation extends Station {
 
@@ -30,19 +31,25 @@ public class CookingStation extends Station {
         
         final int x = position.getX();
         
-        // Inisialisasi Utensil berdasarkan posisi X (BoilingPot/FryingPan/Oven)
-        if (x == 10) {
+        // Inisialisasi Utensil berdasarkan posisi X
+        // 2 Boiling Pot (x=10, x=11) dan 1 Frying Pan (x=12)
+        if (x == 10 || x == 11) {
             this.utensils = new BoilingPot();
             this.utensils.setPortable(true);
-        } else if (x == 11) {
+        } else if (x == 12) {
             this.utensils = new FryingPan();
             this.utensils.setPortable(true);
         } else {
-            this.utensils = new Oven(); 
-            this.utensils.setPortable(false);
+            // Default to BoilingPot for other positions
+            this.utensils = new BoilingPot(); 
+            this.utensils.setPortable(true);
         }
 
         log("INIT", "Station initialized with " + this.utensils.getName() + ".");
+    }
+    
+    public KitchenUtensil getUtensils() {
+        return this.utensils;
     }
     
     public void placeUtensils(KitchenUtensil u) {
@@ -192,18 +199,21 @@ public class CookingStation extends Station {
                 CookingDevice device = (CookingDevice) utensils;
                 Preparable bahan = (Preparable) itemHand;
                 
-                if (device.canAccept(bahan)) {
-                    utensils.getContents().add(bahan);
+                try {
+                    device.addIngredient(bahan);
                     chef.setInventory(null);
                     
                     device.startCooking();
                     
-                    // --- FIX: CASTING KE ITEM UNTUK MENGAKSES getName() ---
                     String ingredientName = ((Item)bahan).getName();
-                    log("ACTION", "START COOKING: " + ingredientName + " placed into " + utensils.getName() + ".");
-                    // ------------------------------------------------------
-                } else {
-                    log("FAIL", "Utensil rejected ingredient (Type/Capacity mismatch).");
+                    log("SUCCESS", "START COOKING: " + ingredientName + " placed into " + utensils.getName() + ".");
+                    
+                } catch (StationFullException e) {
+                    log("FAIL", "✗ " + e.getMessage());
+                } catch (InvalidIngredientStateException e) {
+                    log("FAIL", "✗ " + e.getIngredientName() + " must be " + e.getRequiredState() + " (currently: " + e.getCurrentState() + ")");
+                } catch (Exception e) {
+                    log("FAIL", "Unexpected error: " + e.getMessage());
                 }
                 return;
             }
@@ -233,6 +243,4 @@ public class CookingStation extends Station {
             log("INFO", "Station spot is empty. Chef can place Utensil.");
         }
     }
-
-    public KitchenUtensil getUtensils() { return utensils; }
 }

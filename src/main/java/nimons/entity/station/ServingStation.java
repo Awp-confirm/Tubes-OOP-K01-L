@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import nimons.core.GameConfig;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Dish;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate;
+import nimons.gui.GameScreen;
+import nimons.logic.GameState;
 import nimons.logic.order.OrderManager;
 
 /**
@@ -20,15 +23,22 @@ public class ServingStation extends Station {
     private OrderManager orderManager;
     
     /** Inner class untuk menahan piring yang sedang dalam antrean pengembalian (delay) */
-    private class PendingPlate {
-        Plate plate;
+    private static class PendingPlate {
+        final Plate plate;
         float timer;
-        private final float RETURN_DELAY_MS = 10000; // 10 Detik delay
         
-        public PendingPlate(Plate p) { 
-            this.plate = p; 
-            this.timer = RETURN_DELAY_MS; 
-        } 
+        PendingPlate(Plate plate) { 
+            this.plate = plate; 
+            this.timer = GameConfig.PLATE_RETURN_DELAY_MS; 
+        }
+        
+        boolean isReadyToReturn() {
+            return timer <= 0;
+        }
+        
+        void updateTimer(long deltaTime) {
+            timer -= deltaTime;
+        }
     }
     
     private List<PendingPlate> pendingReturns; // List antrean piring kotor yang tertunda pengembaliannya.
@@ -36,8 +46,16 @@ public class ServingStation extends Station {
     public ServingStation(String name, Position position) {
         super(name, position);
         // OrderManager adalah Singleton (diasumsikan)
-        this.orderManager = OrderManager.getInstance(); 
+        this.orderManager = OrderManager.getInstance();
         this.pendingReturns = new ArrayList<>();
+    }
+    
+    /**
+     * Get GameState lazily (always get fresh reference)
+     */
+    private GameState getGameState() {
+        GameScreen gameScreen = GameScreen.getInstance();
+        return gameScreen != null ? gameScreen.getGameState() : null;
     }
 
     /**
@@ -80,39 +98,59 @@ public class ServingStation extends Station {
             // Validasi 1: Piring Kosong?
             if (masakan == null) {
                 log("FAIL", "REJECTED: Plate is empty. Only plated dishes can be served.");
+                // Don't reduce lives or process empty plate - just reject
                 return;
             }
             
             log("ACTION", "SERVING: Presenting " + masakan.getName() + " to customer...");
 
             // Validasi 2: Cocok dengan Order?
-            boolean orderMatch = orderManager.validateOrder(masakan);
+            nimons.entity.order.Order completedOrder = orderManager.completeOrder(masakan);
 
-            if (orderMatch) {
-                log("SUCCESS", "ORDER CORRECT! Score recorded.");
+            if (completedOrder != null) {
+                // Order matched! Add score
+                int reward = completedOrder.getReward();
+                GameState gameState = getGameState();
+                if (gameState != null && gameState.getScore() != null) {
+                    gameState.getScore().addScore(reward);
+                }
+                log("SUCCESS", "ORDER CORRECT! +" + reward + " points. Order removed from queue.");
             } else {
-                log("FAIL", "ORDER MISMATCH! Dish does not match customer order.");
+                log("FAIL", "ORDER MISMATCH! Dish '" + masakan.getName() + "' is not in the order list.");
+                // Reduce lives for wrong serve
+                GameState gameState = getGameState();
+                if (gameState != null) {
+                    System.out.println("[ServingStation] Calling loseLife(). Current lives: " + gameState.getLives());
+                    gameState.loseLife();
+                    System.out.println("[ServingStation] After loseLife(). Lives now: " + gameState.getLives());
+                } else {
+                    System.out.println("[ServingStation] ERROR: gameState is null, cannot reduce lives!");
+                }
             }
             
-            // --- LOGIKA PENGEMBALIAN PIRING KOTOR (DELAY) ---
+            // --- LOGIKA PENGEMBALIAN PIRING KOTOR (LANGSUNG KE STACK) ---
             
             // 1. Bersihkan Dish dari piring (Plate.removeDish() membersihkan dish dan set status kotor)
+            log("DEBUG", "Before removeDish: isClean=" + piring.isClean() + ", hasFood=" + (piring.getFood() != null));
             piring.removeDish(); 
+            log("DEBUG", "After removeDish: isClean=" + piring.isClean() + ", hasFood=" + (piring.getFood() != null));
 
-            // 2. Hapus dari tangan Chef
-            chef.setInventory(null); 
-
-            // --- Ambil PlateStorage dari Singleton ---
+            // 2. Ambil PlateStorage dari Singleton SEBELUM hapus dari chef
             PlateStorageStation plateStorage = PlateStorageStation.getInstance();
-
-            // 3. Masukkan ke antrean delay 10 detik
-            if (plateStorage != null) {
-                pendingReturns.add(new PendingPlate(piring));
-                log("INFO", "DIRTY PLATE RETURN: Plate added to return queue (Total: " + (pendingReturns.size()) + "). Will return in 10 seconds.");
-            } else {
-                // Log error jika PlateStorage belum dibuat
+            
+            if (plateStorage == null) {
                 log("ERROR", "Plate Storage not initialized! Dirty plate lost."); 
+                chef.setInventory(null);
+                return;
             }
+
+            // 3. Hapus dari tangan Chef
+            chef.setInventory(null); 
+            log("DEBUG", "Chef inventory cleared");
+
+            // 4. Langsung masukkan ke top of stack
+            plateStorage.addPlateToStack(piring);
+            log("SUCCESS", "DIRTY PLATE RETURNED: Plate (clean=" + piring.isClean() + ") added to PlateStorage.");
         } else {
             log("INFO", "Only plated items can be served here.");
         }

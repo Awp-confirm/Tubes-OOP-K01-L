@@ -1,5 +1,6 @@
 package nimons.entity.chef;
 
+import nimons.core.GameConfig;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
 
@@ -16,8 +17,8 @@ public class Chef {
     // Dash attributes
     private boolean isDashing;
     private long lastDashTime;
-    private static final long DASH_COOLDOWN = 3000; // 3 second cooldown
-    private static final int DASH_DISTANCE = 3; // Dash 3 tiles
+    
+    private static final long NANOSECONDS_TO_MS = 1_000_000;
 
     public Chef() {
         this.isDashing = false;
@@ -109,21 +110,33 @@ public class Chef {
     }
 
     private Position calculateNewPosition(Direction direction) {
-        int newX = position.getX();
-        int newY = position.getY();
+        return calculatePositionInDirection(position, direction, 1);
+    }
+    
+    /**
+     * Calculate position in a given direction with specified distance
+     * 
+     * @param current starting position
+     * @param direction direction to move
+     * @param distance number of tiles to move
+     * @return new position
+     */
+    private Position calculatePositionInDirection(Position current, Direction direction, int distance) {
+        int newX = current.getX();
+        int newY = current.getY();
         
         switch (direction) {
             case UP:
-                newY--;
+                newY -= distance;
                 break;
             case DOWN:
-                newY++;
+                newY += distance;
                 break;
             case LEFT:
-                newX--;
+                newX -= distance;
                 break;
             case RIGHT:
-                newX++;
+                newX += distance;
                 break;
         }
         
@@ -175,47 +188,25 @@ public class Chef {
     }
     
     /**
-     * Dash ke arah yang dituju dengan jarak 2 tile
-     * Memiliki cooldown 1 detik
+     * Dash ke arah yang dituju dengan jarak beberapa tile
+     * Memiliki cooldown
      * 
      * @param direction arah dash
      * @param currentTime waktu saat ini (System.nanoTime())
      * @return posisi target dash, atau null jika gagal
      */
     public Position dash(Direction direction, long currentTime) {
-        // Check cooldown
-        long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000; // Convert to ms
-        if (timeSinceLastDash < DASH_COOLDOWN) {
-            return null; // Still in cooldown
+        long timeSinceLastDash = (currentTime - lastDashTime) / NANOSECONDS_TO_MS;
+        if (timeSinceLastDash < GameConfig.DASH_COOLDOWN_MS) {
+            return null;
         }
         
-        // Cannot dash while busy
         if (this.busy) {
             return null;
         }
         
-        // Calculate dash target position (2 tiles away)
-        int targetX = position.getX();
-        int targetY = position.getY();
+        Position targetPosition = calculatePositionInDirection(position, direction, GameConfig.DASH_DISTANCE_TILES);
         
-        switch (direction) {
-            case UP:
-                targetY -= DASH_DISTANCE;
-                break;
-            case DOWN:
-                targetY += DASH_DISTANCE;
-                break;
-            case LEFT:
-                targetX -= DASH_DISTANCE;
-                break;
-            case RIGHT:
-                targetX += DASH_DISTANCE;
-                break;
-        }
-        
-        Position targetPosition = new Position(targetX, targetY);
-        
-        // Set dashing state
         this.isDashing = true;
         this.direction = direction;
         this.lastDashTime = currentTime;
@@ -231,7 +222,7 @@ public class Chef {
      */
     public boolean isDashOnCooldown(long currentTime) {
         long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000;
-        return timeSinceLastDash < DASH_COOLDOWN;
+        return timeSinceLastDash < GameConfig.DASH_COOLDOWN_MS;
     }
     
     /**
@@ -242,7 +233,7 @@ public class Chef {
      */
     public long getDashCooldownRemaining(long currentTime) {
         long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000;
-        long remaining = DASH_COOLDOWN - timeSinceLastDash;
+        long remaining = GameConfig.DASH_COOLDOWN_MS - timeSinceLastDash;
         return remaining > 0 ? remaining : 0;
     }
 }

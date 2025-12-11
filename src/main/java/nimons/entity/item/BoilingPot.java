@@ -3,15 +3,18 @@ package nimons.entity.item;
 import java.util.HashSet;
 import java.util.Set;
 
+import nimons.core.GameConfig;
 import nimons.entity.item.interfaces.CookingDevice;
 import nimons.entity.item.interfaces.Preparable;
+import nimons.exceptions.InvalidIngredientStateException;
+import nimons.exceptions.StationFullException;
 
 public class BoilingPot extends KitchenUtensil implements CookingDevice {
 
     private int capacity;
 
     public BoilingPot() {
-        this("boiling_pot", 3, new HashSet<>());
+        this("boiling_pot", GameConfig.BOILING_POT_CAPACITY, new HashSet<>());
     }
 
     public BoilingPot(String id, int capacity, Set<Preparable> contents) {
@@ -42,19 +45,46 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
 
     @Override 
     public boolean canAccept(Preparable ingredient) { 
-        // Boiling pot bisa menerima ingredient jika belum penuh dan ingredient bisa dimasak
+        // Boiling pot hanya bisa menerima Rice atau Pasta
         Set<Preparable> contents = getContents();
-        if (contents == null) {
+        if (contents == null || ingredient == null) {
             return false;
         }
-        return contents.size() < capacity && ingredient != null && ingredient.canBeCooked();
+        
+        // Cek apakah ingredient adalah Rice atau Pasta
+        if (ingredient instanceof nimons.entity.item.Ingredient) {
+            nimons.entity.item.Ingredient ing = (nimons.entity.item.Ingredient) ingredient;
+            String ingredientType = ing.getId();
+            boolean isRiceOrPasta = ingredientType.equals("rice") || ingredientType.equals("pasta");
+            return contents.size() < capacity && isRiceOrPasta && ingredient.canBeCooked();
+        }
+        
+        return false;
     }
 
     @Override 
-    public void addIngredient(Preparable ingredient) {
-        if (canAccept(ingredient) && getContents() != null) {
-            getContents().add(ingredient);
+    public void addIngredient(Preparable ingredient) throws StationFullException, InvalidIngredientStateException {
+        if (getContents() == null || ingredient == null) {
+            throw new InvalidIngredientStateException("Ingredient", "null", "valid");
         }
+        
+        if (getContents().size() >= capacity) {
+            throw new StationFullException(getName(), capacity);
+        }
+        
+        if (!canAccept(ingredient)) {
+            if (ingredient instanceof Ingredient) {
+                Ingredient ing = (Ingredient) ingredient;
+                throw new InvalidIngredientStateException(
+                    ing.getName(),
+                    "Not rice/pasta or " + ing.getState().toString(),
+                    "Rice or Pasta in cookable state"
+                );
+            }
+            throw new InvalidIngredientStateException("Ingredient", "invalid", "rice or pasta");
+        }
+        
+        getContents().add(ingredient);
     }
 
     @Override 

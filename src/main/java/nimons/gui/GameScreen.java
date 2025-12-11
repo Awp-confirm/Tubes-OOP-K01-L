@@ -16,6 +16,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import nimons.core.GameConfig;
 import nimons.entity.chef.Chef;
 import nimons.entity.chef.Direction;
 import nimons.entity.common.Position;
@@ -40,10 +41,16 @@ import nimons.entity.station.ServingStation;
 import nimons.entity.station.Station;
 import nimons.entity.station.WashingStation;
 import nimons.logic.GameState;
+import nimons.logic.concurrency.GameTaskExecutor;
+import nimons.logic.concurrency.OrderGeneratorTask;
 import nimons.logic.order.OrderManager;
 
 public class GameScreen {
 
+    // Use centralized game configuration
+    private static final int WINDOW_WIDTH = GameConfig.WINDOW_WIDTH;
+    private static final int WINDOW_HEIGHT = GameConfig.WINDOW_HEIGHT;
+    
     private final Stage stage;
     private final StackPane rootPane;
     private final Canvas canvas;
@@ -61,11 +68,7 @@ public class GameScreen {
     private double chefRenderY = 0;
     private double chefTargetX = 0;
     private double chefTargetY = 0;
-    private static final double MOVE_SPEED = 0.3; // Interpolation speed
-    
     private double tileSize = 64; // Dynamic tile size
-    private static final double WINDOW_WIDTH = 1200;
-    private static final double WINDOW_HEIGHT = 800;
     
     // Chef movement control
     private boolean moveUp = false;
@@ -73,7 +76,6 @@ public class GameScreen {
     private boolean moveLeft = false;
     private boolean moveRight = false;
     private long lastMoveTime = 0;
-    private static final long MOVE_COOLDOWN = 150; // milliseconds
     
     // Dash control
     private boolean shiftPressed = false;
@@ -101,6 +103,7 @@ public class GameScreen {
     private Image wallImage;
     private Image chefImage;
     private Map<String, Image> stationImages;
+    private Map<String, Image> itemImages; // For ingredients, plates, utensils
 
     // --- LOGGING & SINGLETON FIELDS ---
     private List<String> onScreenLogs = new ArrayList<>();
@@ -109,30 +112,43 @@ public class GameScreen {
     
     // Game timing
     private long gameStartTime = 0;
+    
+    // --- CONCURRENCY FIELDS ---
+    private GameTaskExecutor taskExecutor;
+    private OrderGeneratorTask orderGeneratorTask;
+    private Thread orderGeneratorThread;
+    
+    private String currentStageId;
 
     public GameScreen(Stage stage) {
+        this(stage, "stageSushi"); // Default stage
+    }
+    
+    public GameScreen(Stage stage, String stageId) {
         this.stage = stage;
+        this.currentStageId = stageId;
         this.rootPane = new StackPane();
         this.canvas = new Canvas(WINDOW_WIDTH, WINDOW_HEIGHT);
         this.gc = canvas.getGraphicsContext2D();
         
         // --- IMPLEMENTASI SINGLETON ---
-        if (instance != null) {
-            throw new IllegalStateException("GameScreen already instantiated.");
-        }
+        // Reset instance jika ada instance lama untuk memungkinkan restart game
         instance = this; // Set instance saat konstruktor dipanggil
         // ------------------------------
         
         rootPane.getChildren().add(canvas);
         
-        // Initialize game state (5 minutes timer, pass threshold 1000 points)
-        this.gameState = new GameState(300, 1000);
+        // Initialize game state using GameConfig and difficulty settings
+        this.gameState = new GameState(GameConfig.GAME_DURATION_SECONDS, GameConfig.PASSING_SCORE_THRESHOLD);
+        
+        // Initialize order manager (singleton)
+        this.orderManager = OrderManager.getInstance();
         
         // Load assets
         loadAssets();
         
-        // Load default map
-        loadMap("stageSushi");
+        // Load stage map
+        loadMap(stageId);
         
         // Setup game loop
         setupGameLoop();
@@ -143,6 +159,26 @@ public class GameScreen {
      */
     public static GameScreen getInstance() { 
         return instance; 
+    }
+    
+    /**
+     * Reset singleton instance (dipanggil saat kembali ke main menu)
+     */
+    public static void resetInstance() {
+        if (instance != null && instance.gameLoop != null) {
+            instance.gameLoop.stop();
+        }
+        instance = null;
+        
+        // Reset all singleton stations to clear state
+        PlateStorageStation.resetInstance();
+    }
+    
+    /**
+     * Get GameState untuk diakses oleh Station
+     */
+    public GameState getGameState() {
+        return gameState;
     }
     
     /**
@@ -161,17 +197,15 @@ public class GameScreen {
     
     
     private void loadAssets() {
-        // 1. Inisialisasi Map (wajib)
+        // Initialize Map
         stationImages = new HashMap<>();
         
-        System.out.println("=== Forcing Fallback UI for Debugging ===");
+        System.out.println("=== Loading Assets ===");
         
-        // 2. Paksa semua Image utama menjadi NULL
-        floorImage = null;
-        wallImage = null;
-        chefImage = null;
-
-        // Wall image - fallback ke floor jika tidak ada
+        // Load tile images
+        floorImage = loadImage("/assets/picture/tile.png");
+        System.out.println("Floor (tile) image loaded: " + (floorImage != null));
+        
         wallImage = loadImage("/assets/picture/wall.png");
         if (wallImage == null) {
             wallImage = floorImage; // Use floor as fallback
@@ -184,30 +218,80 @@ public class GameScreen {
         chefImage = loadImage("/assets/picture/chef.png");
         System.out.println("Chef image loaded: " + (chefImage != null));
         
-        // Load station images - gunakan table.png sebagai default untuk semua station
+        // Load station images
         Image tableImg = loadImage("/assets/picture/table.png");
+        Image tableTopImg = loadImage("/assets/picture/table top.png");
+        Image tableLeftImg = loadImage("/assets/picture/table left.png");
+        Image tableRightImg = loadImage("/assets/picture/table right.png");
+        
+        // Use table.png as default for all stations
         if (tableImg != null) {
             System.out.println("✓ table.png loaded (default for stations)");
-            // Set table sebagai default untuk semua station
             stationImages.put("table", tableImg);
             stationImages.put("cook", tableImg);
             stationImages.put("serving", tableImg);
-            stationImages.put("wash", tableImg);
         }
         
-        // Load CuttingStation image (override table if exists)
-        Image cuttingImg = loadImage("/assets/picture/CuttingStation.png");
-        if (cuttingImg != null) {
-            stationImages.put("cutting", cuttingImg);
-            System.out.println("✓ CuttingStation.png loaded");
+        // Load table variants
+        if (tableTopImg != null) {
+            stationImages.put("tableTop", tableTopImg);
+            System.out.println("✓ table top.png loaded");
+        }
+        if (tableLeftImg != null) {
+            stationImages.put("tableLeft", tableLeftImg);
+            System.out.println("✓ table left.png loaded");
+        }
+        if (tableRightImg != null) {
+            stationImages.put("tableRight", tableRightImg);
+            System.out.println("✓ table right.png loaded");
         }
         
-        // Load Trash image
-        Image trashImg = loadImage("/assets/picture/Trash.png");
-        if (trashImg != null) {
-            stationImages.put("trash", trashImg);
-            System.out.println("✓ Trash.png loaded");
-        }
+        // Load specific station images using helper
+        loadAndRegisterImage("cutting", "/assets/picture/cutting station.png", "cutting station.png");
+        loadAndRegisterImage("wash", "/assets/picture/washing station.png", "washing station.png");
+        loadAndRegisterImage("plateStorage", "/assets/picture/plate storage.png", "plate storage.png");
+        loadAndRegisterImage("trash", "/assets/picture/trash station.png", "trash station.png");
+        loadAndRegisterImage("boilingPot", "/assets/picture/boiling pot empty.png", "boiling pot empty.png");
+        
+        // Load ingredient box images
+        loadAndRegisterImage("boxCucumber", "/assets/picture/box cucumber.png", "box cucumber.png");
+        loadAndRegisterImage("boxFish", "/assets/picture/box fish.png", "box fish.png");
+        loadAndRegisterImage("boxNori", "/assets/picture/box nori.png", "box nori.png");
+        loadAndRegisterImage("boxRice", "/assets/picture/box rice.png", "box rice.png");
+        loadAndRegisterImage("boxShrimp", "/assets/picture/box shrimp.png", "box shrimp.png");
+        
+        // Load ingredient and item images
+        itemImages = new HashMap<>();
+        
+        // Cucumber
+        itemImages.put("cucumber_raw", loadImage("/assets/picture/cucumber.png"));
+        itemImages.put("cucumber_chopped", loadImage("/assets/picture/cucumber cut.png"));
+        
+        // Fish
+        itemImages.put("fish_raw", loadImage("/assets/picture/fish raw.png"));
+        itemImages.put("fish_chopped", loadImage("/assets/picture/fish cut.png"));
+        
+        // Nori
+        itemImages.put("nori_raw", loadImage("/assets/picture/nori raw.png"));
+        
+        // Rice
+        itemImages.put("rice_raw", loadImage("/assets/picture/rice raw.png"));
+        itemImages.put("rice_cooked", loadImage("/assets/picture/rice cooked.png"));
+        itemImages.put("rice_burned", loadImage("/assets/picture/rice burned.png"));
+        
+        // Shrimp
+        itemImages.put("shrimp_raw", loadImage("/assets/picture/shrimp raw.png"));
+        itemImages.put("shrimp_chopped", loadImage("/assets/picture/shrimp cut.png"));
+        itemImages.put("shrimp_cooked", loadImage("/assets/picture/shrimp cooked.png"));
+        itemImages.put("shrimp_burned", loadImage("/assets/picture/shrimp burned.png"));
+        
+        // Load utensil images (for empty utensils)
+        itemImages.put("boilingpot_empty", loadImage("/assets/picture/boiling pot empty.png"));
+        
+        // Note: Plates, dishes, and filled utensils will be rendered with overlays
+        // For now, we use ingredient images to show what's in them
+        
+        System.out.println("✓ Loaded " + itemImages.size() + " ingredient/item images");
         
         System.out.println("=== Assets Loading Complete ===");
     }
@@ -227,6 +311,17 @@ public class GameScreen {
             return null;
         }
     }
+    
+    /**
+     * Helper method to load and register an image in one call
+     */
+    private void loadAndRegisterImage(String key, String path, String displayName) {
+        Image img = loadImage(path);
+        if (img != null) {
+            stationImages.put(key, img);
+            System.out.println("✓ " + displayName + " loaded");
+        }
+    }
 
     private void loadMap(String stageId) {
         try {
@@ -242,8 +337,8 @@ public class GameScreen {
                 double tileSizeByHeight = WINDOW_HEIGHT / tileManager.getHeight();
                 tileSize = Math.min(tileSizeByWidth, tileSizeByHeight);
                 
-                // --- PERUBAHAN SKALA: Skala Tile Size ke 80% dari ukuran maksimum ---
-                tileSize = tileSize * 0.70; 
+                // Scale tile size
+                tileSize = tileSize * GameConfig.TILE_SIZE_SCALE; 
             }
             
             System.out.println("Map loaded: " + stageId);
@@ -364,8 +459,8 @@ public class GameScreen {
             double dy = chefTargetY - chefRenderY;
             
             if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
-                chefRenderX += dx * MOVE_SPEED;
-                chefRenderY += dy * MOVE_SPEED;
+                chefRenderX += dx * GameConfig.MOVE_SPEED;
+                chefRenderY += dy * GameConfig.MOVE_SPEED;
             } else {
                 chefRenderX = chefTargetX;
                 chefRenderY = chefTargetY;
@@ -400,9 +495,9 @@ public class GameScreen {
         // Offset X: Tetap di tengah
         double offsetX = (WINDOW_WIDTH - mapWidth) / 2; 
         
-        // Offset Y: Letakkan map 20px dari tepi atas
-        double mapTopMargin = 20; 
-        double offsetY = mapTopMargin; 
+        // Offset Y: Letakkan map 40px dari tepi atas (gap kecil)
+        double mapTopMargin = 40; 
+        double offsetY = mapTopMargin;
         
         // --- START: RENDERING MAP TILES DAN STATIONS ---
         Tile[][] tiles = tileManager.getTiles();
@@ -416,54 +511,45 @@ public class GameScreen {
                 
                 // 1. Draw tile background (Floor/Wall)
                 if (tile.isWall()) {
-                    // Fallback: dark gray wall
-                    gc.setFill(Color.web("#2d2d2d"));
-                    gc.fillRect(screenX, screenY, tileSize, tileSize);
+                    if (wallImage != null) {
+                        gc.drawImage(wallImage, screenX, screenY, tileSize, tileSize);
+                    } else {
+                        // Fallback: dark gray wall
+                        gc.setFill(Color.web("#2d2d2d"));
+                        gc.fillRect(screenX, screenY, tileSize, tileSize);
+                    }
                 } else {
-                    // Fallback: light floor
-                    gc.setFill(Color.web("#e8dcc8"));
-                    gc.fillRect(screenX, screenY, tileSize, tileSize);
+                    if (floorImage != null) {
+                        gc.drawImage(floorImage, screenX, screenY, tileSize, tileSize);
+                    } else {
+                        // Fallback: light floor
+                        gc.setFill(Color.web("#e8dcc8"));
+                        gc.fillRect(screenX, screenY, tileSize, tileSize);
+                    }
                 }
                 
                 // 2. Draw station on top of floor
                 Station station = tile.getStation();
                 if (station != null) {
-                    // Fallback to colored rectangle (Orange)
-                    gc.setFill(Color.web("#ff6b35"));
-                    double padding = tileSize * 0.1;
-                    gc.fillRect(screenX + padding, screenY + padding, 
-                                tileSize - padding * 2, tileSize - padding * 2);
-                    
-                    // Draw station initial
-                    gc.setFill(Color.WHITE);
-                    gc.setFont(javafx.scene.text.Font.font(tileSize * 0.3));
-                    String initial = station.getClass().getSimpleName().substring(0, 1);
-                    gc.fillText(initial, screenX + tileSize * 0.4, screenY + tileSize * 0.6);
-
-                        // --- LOGIC BARU: RENDER PROGRESS BAR ---
-                    if (station.isActive()) {
-                        float ratio = station.getProgressRatio();
+                    Image stationImg = getStationImage(station);
+                    if (stationImg != null) {
+                        gc.drawImage(stationImg, screenX, screenY, tileSize, tileSize);
+                    } else {
+                        // Fallback to colored rectangle (Orange)
+                        gc.setFill(Color.web("#ff6b35"));
+                        double padding = tileSize * 0.1;
+                        gc.fillRect(screenX + padding, screenY + padding, 
+                                    tileSize - padding * 2, tileSize - padding * 2);
                         
-                        // Progress Bar Dimensions
-                        double barHeight = tileSize * 0.1;
-                        double barWidth = tileSize * 0.8;
-                        double barX = screenX + tileSize * 0.1;
-                        double barY = screenY - barHeight - 2; // Di atas tile
-                        
-                        // Background Bar (Merah/Abu-abu)
-                        gc.setFill(Color.GRAY.darker());
-                        gc.fillRect(barX, barY, barWidth, barHeight);
-                        
-                        // Progress Bar (Hijau)
-                        gc.setFill(Color.LIMEGREEN);
-                        gc.fillRect(barX, barY, barWidth * ratio, barHeight);
-                        
-                        // Border (Optional)
-                        gc.setStroke(Color.BLACK);
-                        gc.setLineWidth(1);
-                        gc.strokeRect(barX, barY, barWidth, barHeight);
+                        // Draw station initial
+                        gc.setFill(Color.WHITE);
+                        gc.setFont(javafx.scene.text.Font.font(tileSize * 0.3));
+                        String initial = station.getClass().getSimpleName().substring(0, 1);
+                        gc.fillText(initial, screenX + tileSize * 0.4, screenY + tileSize * 0.6);
                     }
-                    // ----------------------------------------
+                    
+                    // Draw items on stations
+                    renderItemsOnStation(station, screenX, screenY, tileSize);
             
                 }
             }
@@ -521,57 +607,292 @@ public class GameScreen {
         // Render game UI (Score and Timer)
         renderGameUI();
 
-        // Render orders di atas map, bukan di atas tile
+        // Render orders on left side (vertical layout)
         if (orderManager != null) {
-            // Tempatkan order panel di atas map (HUD), misal 10px di atas offsetY
-            double orderPanelY = Math.max(10, offsetY - 110); // 110 = tinggi panel + margin
-            OrderDisplay.renderOrders(gc, orderManager.getActiveOrders(), WINDOW_WIDTH, orderPanelY);
+            // Tempatkan order panel di kiri atas, di bawah margin
+            double orderPanelY = 20; // Top margin
+            OrderDisplay.renderOrders(gc, orderManager.getActiveOrders(), WINDOW_WIDTH, orderPanelY, itemImages);
         }
         
         // Render pause menu if paused
         if (isPaused) {
             renderPauseMenu();
         }
+        
+        // --- RENDER ALL PROGRESS BARS ON TOP OF EVERYTHING ---
+        if (tiles != null) {
+            for (int y = 0; y < tileManager.getHeight(); y++) {
+                for (int x = 0; x < tileManager.getWidth(); x++) {
+                    Tile tile = tiles[y][x];
+                    if (tile == null) continue;
+                    
+                    Station station = tile.getStation();
+                    if (station != null && station.isActive()) {
+                        double screenX = offsetX + x * tileSize;
+                        double screenY = offsetY + y * tileSize;
+                        float ratio = station.getProgressRatio();
+                        
+                        // Progress Bar Dimensions
+                        double barHeight = tileSize * 0.1;
+                        double barWidth = tileSize * 0.8;
+                        double barX = screenX + tileSize * 0.1;
+                        double barY = screenY - barHeight - 2; // Di atas tile
+                        
+                        // Background Bar (Merah/Abu-abu)
+                        gc.setFill(Color.GRAY.darker());
+                        gc.fillRect(barX, barY, barWidth, barHeight);
+                        
+                        // Progress Bar (Hijau)
+                        gc.setFill(Color.LIMEGREEN);
+                        gc.fillRect(barX, barY, barWidth * ratio, barHeight);
+                        
+                        // Border
+                        gc.setStroke(Color.BLACK);
+                        gc.setLineWidth(1);
+                        gc.strokeRect(barX, barY, barWidth, barHeight);
+                    }
+                }
+            }
+        }
+        // -------------------------------------------------------
     }
 
     private Image getStationImage(Station station) {
         if (station instanceof CookingStation) {
             // R = Cooking Station (Stove/Oven)
-            return stationImages.get("cook");
+            return stationImages.getOrDefault("boilingPot", stationImages.get("cook"));
         } else if (station instanceof CuttingStation) {
             // C = Cutting Station - gunakan asset khusus
             return stationImages.getOrDefault("cutting", stationImages.get("table"));
         } else if (station instanceof AssemblyStation) {
-            // A = Assembly Station
-            return stationImages.get("table");
+            // A = Assembly Station - use table top
+            Image tableTop = stationImages.get("tableTop");
+            return tableTop != null ? tableTop : stationImages.get("table");
         } else if (station instanceof ServingStation) {
             // S = Serving Counter
             return stationImages.get("serving");
         } else if (station instanceof WashingStation) {
             // W = Washing Station
-            return stationImages.get("wash");
+            return stationImages.getOrDefault("wash", stationImages.get("table"));
         } else if (station instanceof IngredientStorageStation) {
-            // I = Ingredient Storage
+            // I = Ingredient Storage - use specific box images
+            IngredientStorageStation iss = (IngredientStorageStation) station;
+            nimons.entity.item.Item storedItem = iss.getStoredItem();
+            
+            if (storedItem != null) {
+                String itemName = storedItem.getName().toLowerCase();
+                if (itemName.contains("cucumber") || itemName.contains("timun")) {
+                    return stationImages.getOrDefault("boxCucumber", stationImages.get("table"));
+                } else if (itemName.contains("fish") || itemName.contains("ikan")) {
+                    return stationImages.getOrDefault("boxFish", stationImages.get("table"));
+                } else if (itemName.contains("nori")) {
+                    return stationImages.getOrDefault("boxNori", stationImages.get("table"));
+                } else if (itemName.contains("rice") || itemName.contains("beras")) {
+                    return stationImages.getOrDefault("boxRice", stationImages.get("table"));
+                } else if (itemName.contains("shrimp") || itemName.contains("udang")) {
+                    return stationImages.getOrDefault("boxShrimp", stationImages.get("table"));
+                }
+            }
             return stationImages.get("table");
         } else if (station instanceof PlateStorageStation) {
             // P = Plate Storage
-            return stationImages.get("table");
+            return stationImages.getOrDefault("plateStorage", stationImages.get("table"));
         } else if (station instanceof nimons.entity.station.TrashStation) {
             // T = Trash Station - gunakan asset khusus
             return stationImages.getOrDefault("trash", stationImages.get("table"));
         }
         return null;
     }
+    
+    /**
+     * Get image for an item based on its type and state
+     */
+    private Image getItemImage(nimons.entity.item.Item item) {
+        if (item == null) return null;
+        
+        String itemName = item.getName().toLowerCase();
+        
+        // Check for utensils (BoilingPot, FryingPan)
+        if (item instanceof nimons.entity.item.KitchenUtensil) {
+            nimons.entity.item.KitchenUtensil utensil = (nimons.entity.item.KitchenUtensil) item;
+            
+            // If utensil has contents, show the first ingredient
+            if (utensil.getContents() != null && !utensil.getContents().isEmpty()) {
+                nimons.entity.item.interfaces.Preparable firstItem = utensil.getContents().iterator().next();
+                if (firstItem instanceof nimons.entity.item.Item) {
+                    return getItemImage((nimons.entity.item.Item) firstItem);
+                }
+            }
+            
+            // Empty utensil
+            if (itemName.contains("boiling") || itemName.contains("pot")) {
+                return itemImages.get("boilingpot_empty");
+            }
+            
+            // For other utensils, return null for now
+            return null;
+        }
+        
+        // Check for plates with dishes
+        if (item instanceof nimons.entity.item.Plate) {
+            nimons.entity.item.Plate plate = (nimons.entity.item.Plate) item;
+            
+            // If plate has food, try to show the first ingredient/component
+            if (plate.getFood() != null) {
+                nimons.entity.item.Dish dish = plate.getFood();
+                if (dish.getComponents() != null && !dish.getComponents().isEmpty()) {
+                    nimons.entity.item.interfaces.Preparable firstComp = dish.getComponents().get(0);
+                    if (firstComp instanceof nimons.entity.item.Item) {
+                        return getItemImage((nimons.entity.item.Item) firstComp);
+                    }
+                }
+            }
+            
+            // Empty or dirty plate - could add plate image here
+            return null;
+        }
+        
+        // Check for ingredients with states
+        if (item instanceof nimons.entity.item.Ingredient) {
+            nimons.entity.item.Ingredient ing = (nimons.entity.item.Ingredient) item;
+            nimons.entity.item.IngredientState state = ing.getState();
+            
+            if (itemName.contains("cucumber") || itemName.contains("timun")) {
+                if (state == nimons.entity.item.IngredientState.CHOPPED) {
+                    return itemImages.get("cucumber_chopped");
+                }
+                return itemImages.get("cucumber_raw");
+            } else if (itemName.contains("fish") || itemName.contains("ikan")) {
+                if (state == nimons.entity.item.IngredientState.CHOPPED) {
+                    return itemImages.get("fish_chopped");
+                }
+                return itemImages.get("fish_raw");
+            } else if (itemName.contains("nori")) {
+                return itemImages.get("nori_raw");
+            } else if (itemName.contains("rice") || itemName.contains("beras") || itemName.contains("nasi")) {
+                if (state == nimons.entity.item.IngredientState.BURNED) {
+                    return itemImages.get("rice_burned");
+                } else if (state == nimons.entity.item.IngredientState.COOKED) {
+                    return itemImages.get("rice_cooked");
+                }
+                return itemImages.get("rice_raw");
+            } else if (itemName.contains("shrimp") || itemName.contains("udang")) {
+                if (state == nimons.entity.item.IngredientState.BURNED) {
+                    return itemImages.get("shrimp_burned");
+                } else if (state == nimons.entity.item.IngredientState.COOKED) {
+                    return itemImages.get("shrimp_cooked");
+                } else if (state == nimons.entity.item.IngredientState.CHOPPED) {
+                    return itemImages.get("shrimp_chopped");
+                }
+                return itemImages.get("shrimp_raw");
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Render items on stations (ingredients on cutting boards, items on assembly, etc.)
+     */
+    private void renderItemsOnStation(Station station, double screenX, double screenY, double tileSize) {
+        if (station == null) return;
+        
+        // Render items on CuttingStation
+        if (station instanceof CuttingStation) {
+            CuttingStation cs = (CuttingStation) station;
+            nimons.entity.item.Item placedItem = cs.getPlacedItem();
+            if (placedItem != null) {
+                Image itemImg = getItemImage(placedItem);
+                if (itemImg != null) {
+                    double itemSize = tileSize * 0.4;
+                    double itemX = screenX + (tileSize - itemSize) / 2;
+                    double itemY = screenY + (tileSize - itemSize) / 2;
+                    gc.drawImage(itemImg, itemX, itemY, itemSize, itemSize);
+                }
+            }
+        }
+        
+        // Render items on CookingStation (utensils with ingredients)
+        if (station instanceof CookingStation) {
+            CookingStation cs = (CookingStation) station;
+            nimons.entity.item.KitchenUtensil utensil = cs.getUtensils();
+            
+            if (utensil != null) {
+                boolean hasContents = utensil.getContents() != null && !utensil.getContents().isEmpty();
+                
+                if (hasContents) {
+                    // Show the ingredient inside the utensil
+                    Image itemImg = getItemImage(utensil);
+                    if (itemImg != null) {
+                        double itemSize = tileSize * 0.5;
+                        double itemX = screenX + (tileSize - itemSize) / 2;
+                        double itemY = screenY + (tileSize - itemSize) / 2;
+                        gc.drawImage(itemImg, itemX, itemY, itemSize, itemSize);
+                    }
+                }
+                // If empty, the station image (boiling pot empty) is already shown
+            }
+        }
+        
+        // Render items on AssemblyStation
+        if (station instanceof nimons.entity.station.AssemblyStation) {
+            nimons.entity.station.AssemblyStation as = (nimons.entity.station.AssemblyStation) station;
+            nimons.entity.item.Item placedItem = as.getPlacedItem();
+            if (placedItem != null) {
+                Image itemImg = getItemImage(placedItem);
+                if (itemImg != null) {
+                    double itemSize = tileSize * 0.4;
+                    double itemX = screenX + (tileSize - itemSize) / 2;
+                    double itemY = screenY + (tileSize - itemSize) / 2;
+                    gc.drawImage(itemImg, itemX, itemY, itemSize, itemSize);
+                }
+            }
+        }
+        
+        // Render items on IngredientStorageStation
+        if (station instanceof IngredientStorageStation) {
+            IngredientStorageStation iss = (IngredientStorageStation) station;
+            nimons.entity.item.Item placedItem = iss.getPlacedItem();
+            if (placedItem != null) {
+                Image itemImg = getItemImage(placedItem);
+                if (itemImg != null) {
+                    double itemSize = tileSize * 0.4;
+                    double itemX = screenX + (tileSize - itemSize) / 2;
+                    double itemY = screenY + (tileSize - itemSize) / 2;
+                    gc.drawImage(itemImg, itemX, itemY, itemSize, itemSize);
+                }
+            }
+        }
+    }
 
     public void start() {
+        // Reset game state and order manager
+        gameState.reset();
+        orderManager.reset();
+        
+        // Clear logs
+        onScreenLogs.clear();
+        
+        // Reset move and pause flags
+        isPaused = false;
+        moveUp = false;
+        moveDown = false;
+        moveLeft = false;
+        moveRight = false;
+        shiftPressed = false;
+        
+        // Initialize concurrency components
+        taskExecutor = GameTaskExecutor.getInstance();
+        orderGeneratorTask = new OrderGeneratorTask(orderManager, GameConfig.ORDER_SPAWN_INTERVAL_MS);
+        orderGeneratorThread = new Thread(orderGeneratorTask, "OrderGenerator");
+        orderGeneratorThread.setDaemon(true); // Daemon thread will stop when main program exits
+        orderGeneratorThread.start();
+        addLog("✓ Background order generation started");
+        
         Scene scene = new Scene(rootPane, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.getStylesheets().add(getClass().getResource("/styles/mainmenu.css").toExternalForm());
         
         // Initialize OrderManager dengan available recipes untuk sushi stage
-        orderManager = OrderManager.getInstance();
-        orderManager.reset();
-        
-        // Load dummy recipes untuk testing
         List<Recipe> recipes = createDummyRecipes();
         orderManager.setAvailableRecipes(recipes);
         
@@ -591,9 +912,9 @@ public class GameScreen {
      * Create dummy recipes untuk testing
      * Recipes:
      * 1. Kappa Maki: Nori (Raw) + Nasi (Cooked) + Timun (Chopped)
-     * 2. Sakana Maki: Nori (Raw) + Nasi (Cooked) + Ikan (Raw)
+     * 2. Sakana Maki: Nori (Raw) + Nasi (Cooked) + Ikan (Chopped)
      * 3. Ebi Maki: Nori (Raw) + Nasi (Cooked) + Udang (Cooked)
-     * 4. Fish Cucumber Roll: Nori (Raw) + Nasi (Cooked) + Ikan (Raw) + Timun (Chopped)
+     * 4. Fish Cucumber Roll: Nori (Raw) + Nasi (Cooked) + Ikan (Chopped) + Timun (Chopped)
      */
     private List<Recipe> createDummyRecipes() {
         List<Recipe> recipes = new ArrayList<>();
@@ -605,11 +926,11 @@ public class GameScreen {
         kappaMakiReqs.add(new IngredientRequirement(Cucumber.class, IngredientState.CHOPPED));
         recipes.add(new Recipe("Kappa Maki", kappaMakiReqs));
         
-        // Recipe 2: Sakana Maki - Nori (Raw) + Nasi (Cooked) + Ikan (Raw)
+        // Recipe 2: Sakana Maki - Nori (Raw) + Nasi (Cooked) + Ikan (Chopped)
         List<IngredientRequirement> sakanaMakiReqs = new ArrayList<>();
         sakanaMakiReqs.add(new IngredientRequirement(Nori.class, IngredientState.RAW));
         sakanaMakiReqs.add(new IngredientRequirement(Rice.class, IngredientState.COOKED));
-        sakanaMakiReqs.add(new IngredientRequirement(Fish.class, IngredientState.RAW));
+        sakanaMakiReqs.add(new IngredientRequirement(Fish.class, IngredientState.CHOPPED));
         recipes.add(new Recipe("Sakana Maki", sakanaMakiReqs));
         
         // Recipe 3: Ebi Maki - Nori (Raw) + Nasi (Cooked) + Udang (Cooked)
@@ -619,11 +940,11 @@ public class GameScreen {
         ebiMakiReqs.add(new IngredientRequirement(Shrimp.class, IngredientState.COOKED));
         recipes.add(new Recipe("Ebi Maki", ebiMakiReqs));
         
-        // Recipe 4: Fish Cucumber Roll - Nori (Raw) + Nasi (Cooked) + Ikan (Raw) + Timun (Chopped)
+        // Recipe 4: Fish Cucumber Roll - Nori (Raw) + Nasi (Cooked) + Ikan (Chopped) + Timun (Chopped)
         List<IngredientRequirement> fishCucumberRollReqs = new ArrayList<>();
         fishCucumberRollReqs.add(new IngredientRequirement(Nori.class, IngredientState.RAW));
         fishCucumberRollReqs.add(new IngredientRequirement(Rice.class, IngredientState.COOKED));
-        fishCucumberRollReqs.add(new IngredientRequirement(Fish.class, IngredientState.RAW));
+        fishCucumberRollReqs.add(new IngredientRequirement(Fish.class, IngredientState.CHOPPED));
         fishCucumberRollReqs.add(new IngredientRequirement(Cucumber.class, IngredientState.CHOPPED));
         recipes.add(new Recipe("Fish Cucumber Roll", fishCucumberRollReqs));
         
@@ -634,10 +955,23 @@ public class GameScreen {
         if (gameLoop != null) {
             gameLoop.stop();
         }
+        
+        // Stop background order generation
+        if (orderGeneratorTask != null) {
+            orderGeneratorTask.stop();
+        }
+        
+        // Shutdown executor service
+        if (taskExecutor != null) {
+            taskExecutor.shutdown();
+        }
     }
     
     private void goToMainMenu() {
         stop();
+        // Reset singleton instance
+        resetInstance();
+        
         MainMenuScene menu = new MainMenuScene(stage);
         Scene scene = new Scene(menu.rootPane);
         scene.getStylesheets().add(getClass().getResource("/styles/mainmenu.css").toExternalForm());
@@ -734,7 +1068,7 @@ public class GameScreen {
         // ------------------------------------------
 
         // Movement cooldown
-        if (currentTime - lastMoveTime < MOVE_COOLDOWN * 1_000_000) {
+        if (currentTime - lastMoveTime < GameConfig.MOVE_COOLDOWN_MS * 1_000_000) {
             return;
         }
         
@@ -946,6 +1280,17 @@ public class GameScreen {
         gc.setFill(Color.WHITE);
         gc.setFont(javafx.scene.text.Font.font(tileSize * 0.2));
         gc.fillText(chef.getName(), chefScreenX + tileSize * 0.1, chefScreenY - tileSize * 0.05);
+        
+        // Draw item held by chef (above head)
+        if (chef.getInventory() != null) {
+            Image itemImg = getItemImage(chef.getInventory());
+            if (itemImg != null) {
+                double itemSize = tileSize * 0.5;
+                double itemX = chefScreenX + (tileSize - itemSize) / 2;
+                double itemY = chefScreenY - itemSize - 5;
+                gc.drawImage(itemImg, itemX, itemY, itemSize, itemSize);
+            }
+        }
     }
     
     /**
@@ -1173,12 +1518,20 @@ public class GameScreen {
         // Stop the game loop
         gameLoop.stop();
         
+        // Always update stage progress (either pass or fail)
+        nimons.logic.StageProgress.getInstance().completeStage(
+            currentStageId, 
+            gameState.getScore().getCurrentScore(),
+            gameState.isPassed()
+        );
+        
         // Show result screen
         ResultScreen resultScreen = new ResultScreen(
             stage,
             gameState.getScore().getCurrentScore(),
             gameState.isPassed(),
-            gameState.getPassThreshold()
+            gameState.getPassThreshold(),
+            gameState.getFailReason()
         );
         resultScreen.start();
     }
