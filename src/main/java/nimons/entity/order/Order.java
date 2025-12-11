@@ -7,13 +7,13 @@ public class Order {
     private int reward;
     private int penalty;
     private int timeLimitSeconds;
-    private int remainingTimeSeconds;
+    private double remainingTimeSeconds;
     private OrderStatus status;
 
     public Order() {}
 
     public Order(int index, Recipe recipe, int reward, int penalty, int timeLimitSeconds,
-                 int remainingTimeSeconds, OrderStatus status) {
+                 double remainingTimeSeconds, OrderStatus status) {
         this.index = index;
         this.recipe = recipe;
         this.reward = reward;
@@ -64,11 +64,11 @@ public class Order {
         this.timeLimitSeconds = timeLimitSeconds; 
     }
 
-    public int getRemainingTimeSeconds() { 
+    public double getRemainingTimeSeconds() { 
         return remainingTimeSeconds; 
     }
 
-    public void setRemainingTimeSeconds(int remainingTimeSeconds) { 
+    public void setRemainingTimeSeconds(double remainingTimeSeconds) { 
         this.remainingTimeSeconds = remainingTimeSeconds; 
     }
 
