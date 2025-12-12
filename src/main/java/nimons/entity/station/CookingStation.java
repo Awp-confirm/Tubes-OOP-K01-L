@@ -216,7 +216,7 @@ public class CookingStation extends Station {
                 }
             }
             
-            // 3. MASUKKAN BAHAN KE PANCI (Hand: Bahan)
+            // 3. MASUKKAN BAHAN KE PANCI (Hand: Bahan) - Only if utensil is on station
             if (itemHand instanceof Preparable && utensils instanceof CookingDevice) {
                 CookingDevice device = (CookingDevice) utensils;
                 Preparable bahan = (Preparable) itemHand;

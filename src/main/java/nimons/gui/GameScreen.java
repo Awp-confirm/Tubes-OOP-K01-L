@@ -710,7 +710,7 @@ public class GameScreen {
         if (item instanceof nimons.entity.item.KitchenUtensil) {
             nimons.entity.item.KitchenUtensil utensil = (nimons.entity.item.KitchenUtensil) item;
             
-            // If utensil has contents, show the first ingredient
+            // If utensil has contents, show the first ingredient inside
             if (utensil.getContents() != null && !utensil.getContents().isEmpty()) {
                 nimons.entity.item.interfaces.Preparable firstItem = utensil.getContents().iterator().next();
                 if (firstItem instanceof nimons.entity.item.Item) {
@@ -718,14 +718,8 @@ public class GameScreen {
                 }
             }
             
-            // Empty utensil
-            if (itemName.contains("boiling") || itemName.contains("pot")) {
-                return itemImages.get("boilingpot_empty");
-            } else if (itemName.contains("frying") || itemName.contains("pan")) {
-                return itemImages.get("fryingpan_empty");
-            }
-            
-            // For other utensils, return null for now
+            // Empty utensil - return null so drawChef can handle it specially
+            // (for chef holding: uses boilingpot_take, for station: uses boilingpot_empty)
             return null;
         }
         
@@ -788,6 +782,35 @@ public class GameScreen {
     }
     
     /**
+     * Render cutting progress bar (yellow for cutting)
+     */
+    private void renderCuttingProgressBar(CuttingStation cs, double screenX, double screenY, double tileSize) {
+        float progressRatio = cs.getProgressRatio();
+        if (progressRatio <= 0) {
+            return;
+        }
+        
+        // Progress bar dimensions
+        double barWidth = tileSize * 0.6;
+        double barHeight = tileSize * 0.08;
+        double barX = screenX + (tileSize - barWidth) / 2;
+        double barY = screenY + tileSize - barHeight - 5; // Bottom of tile
+        
+        // Draw background (dark)
+        gc.setFill(Color.web("#333333"));
+        gc.fillRect(barX, barY, barWidth, barHeight);
+        
+        // Draw progress (yellow for cutting)
+        gc.setFill(Color.web("#FFD700")); // Gold/Yellow
+        gc.fillRect(barX, barY, barWidth * progressRatio, barHeight);
+        
+        // Draw border
+        gc.setStroke(Color.WHITE);
+        gc.setLineWidth(1);
+        gc.strokeRect(barX, barY, barWidth, barHeight);
+    }
+    
+    /**
      * Render cooking progress bar (green for COOKING, red for BURNED countdown)
      */
     private void renderCookingProgressBar(CookingStation cs, double screenX, double screenY, double tileSize) {
@@ -831,19 +854,23 @@ public class GameScreen {
             gc.fillRect(barX, barY, barWidth * ratio, barHeight);
             
         } else if (state == nimons.entity.item.IngredientState.COOKED) {
-            // RED progress bar for BURNED countdown (from COOKED to BURNED)
+            // YELLOW progress bar for BURNED countdown (from COOKED to BURNED)
             float requiredCookTime = ingredient.getRequiredCookingTime();
-            float totalTime = (float) (GameConfig.TIME_TO_COOK_MS + GameConfig.TIME_TO_BURN_MS);
-            float currentTime = ingredient.getCurrentCookingTime();
+            float totalTime = ingredient.getTotalCookingTime(); // Use total time including burn phase
             
-            // Calculate how much of BURNED phase is remaining
-            float burnedPhaseRemaining = Math.max(0, totalTime - currentTime);
-            float burnedPhaseTotal = (float) GameConfig.TIME_TO_BURN_MS;
-            float burnRatio = burnedPhaseTotal > 0 ? Math.min(1.0f, burnedPhaseRemaining / burnedPhaseTotal) : 0;
+            // Calculate how much time has passed in the burn phase
+            // totalTime continues past requiredCookTime during burn phase
+            float burnPhaseElapsed = Math.max(0, totalTime - requiredCookTime);
+            float burnPhaseTotal = (float) GameConfig.TIME_TO_BURN_MS;
+            float burnRatio = burnPhaseTotal > 0 ? Math.min(1.0f, burnPhaseElapsed / burnPhaseTotal) : 0;
             
-            // RED bar shows BURNED countdown
-            gc.setFill(Color.web("#FF0000")); // Red
-            gc.fillRect(barX, barY, barWidth * (1.0 - burnRatio), barHeight);
+            // Debug log
+            System.out.println("[BURN] totalTime=" + totalTime + ", required=" + requiredCookTime + 
+                             ", elapsed=" + burnPhaseElapsed + ", total=" + burnPhaseTotal + ", ratio=" + burnRatio);
+            
+            // YELLOW bar fills up as it approaches BURNED state
+            gc.setFill(Color.web("#FFD700")); // Yellow/Gold
+            gc.fillRect(barX, barY, barWidth * burnRatio, barHeight);
         }
         
         // Draw border
@@ -870,6 +897,11 @@ public class GameScreen {
                     double itemY = screenY + (tileSize - itemSize) / 2;
                     gc.drawImage(itemImg, itemX, itemY, itemSize, itemSize);
                 }
+                
+                // Render cutting progress bar
+                if (cs.isActive()) {
+                    renderCuttingProgressBar(cs, screenX, screenY, tileSize);
+                }
             }
         }
         
@@ -881,21 +913,25 @@ public class GameScreen {
             if (utensil != null) {
                 boolean hasContents = utensil.getContents() != null && !utensil.getContents().isEmpty();
                 
+                // Check if any ingredient is still cooking
+                boolean isStillCooking = false;
+                // Check if any ingredient is COOKED (burning phase)
+                boolean isInBurnPhase = false;
+                
                 if (hasContents) {
-                    // Show boiling pot fill GIF ONLY while cooking (not already finished)
-                    // Check if any ingredient is still cooking
-                    boolean isStillCooking = false;
                     for (nimons.entity.item.interfaces.Preparable prep : utensil.getContents()) {
                         if (prep instanceof nimons.entity.item.Ingredient) {
                             nimons.entity.item.Ingredient ing = (nimons.entity.item.Ingredient) prep;
                             if (ing.getState() == nimons.entity.item.IngredientState.COOKING) {
                                 isStillCooking = true;
-                                break;
+                            }
+                            if (ing.getState() == nimons.entity.item.IngredientState.COOKED) {
+                                isInBurnPhase = true;
                             }
                         }
                     }
                     
-                    // Only show fill GIF if still cooking
+                    // Only show fill GIF if still cooking (not finished or burning)
                     if (isStillCooking && boilingPotFillGif != null) {
                         double gifSize = tileSize * 0.45;
                         double gifX = screenX + (tileSize - gifSize) / 2;
@@ -912,12 +948,26 @@ public class GameScreen {
                         }
                     }
                     
-                    // Render cooking progress bar only if still cooking
-                    if (isStillCooking) {
+                    // Render cooking progress bar if cooking OR in burn phase
+                    if (isStillCooking || isInBurnPhase) {
                         renderCookingProgressBar(cs, screenX, screenY, tileSize);
                     }
+                } else {
+                    // Empty utensil on station - show the empty utensil image
+                    String utensilName = utensil.getName().toLowerCase();
+                    Image emptyImg = null;
+                    if (utensilName.contains("boiling") || utensilName.contains("pot")) {
+                        emptyImg = itemImages.get("boilingpot_empty");
+                    } else if (utensilName.contains("frying") || utensilName.contains("pan")) {
+                        emptyImg = itemImages.get("fryingpan_empty");
+                    }
+                    if (emptyImg != null) {
+                        double itemSize = tileSize * 0.5;
+                        double itemX = screenX + (tileSize - itemSize) / 2;
+                        double itemY = screenY + (tileSize - itemSize) / 2;
+                        gc.drawImage(emptyImg, itemX, itemY, itemSize, itemSize);
+                    }
                 }
-                // If empty, the station image (cooking station) is already shown, no extra utensil image
             }
         }
         
@@ -1097,6 +1147,10 @@ public class GameScreen {
                 case SHIFT:
                     shiftPressed = true;
                     break;
+                case Q:
+                    // Throw item 2 blocks in front
+                    throwItem();
+                    break;
                 
                 // --- SPACEBAR: DROP ITEM OR INTERACT ---
                 case SPACE: 
@@ -1109,6 +1163,17 @@ public class GameScreen {
                         Tile tileFront = tileManager.getTileAt(posInFront);
                         
                         if (itemInHand != null) {
+                            // Check if chef wants to add ingredient to utensil in hand
+                            if (itemInHand instanceof nimons.entity.item.interfaces.CookingDevice) {
+                                // Chef is holding a cooking device - check if can add ingredient from tile
+                                if (tileFront != null && tileFront.getItemOnTile() != null && 
+                                    tileFront.getItemOnTile() instanceof nimons.entity.item.interfaces.Preparable) {
+                                    // Try to add ingredient from tile to utensil
+                                    addIngredientToUtensilInHand(tileFront);
+                                    return; // Exit after handling
+                                }
+                            }
+                            
                             // Chef punya item - cek apakah ada station di depan
                             if (tileFront != null && tileFront.getStation() != null) {
                                 // Ada station di depan - INTERACT dengan station
@@ -1182,6 +1247,89 @@ public class GameScreen {
         activeChef.setInventory(itemOnTile);
         tile.setItemOnTile(null);
         addLog("✓ Picked up " + itemOnTile.getName());
+    }
+    
+    /**
+     * Throw/drop item 2 blocks in front of chef
+     */
+    private void throwItem() {
+        if (activeChef == null || activeChef.getInventory() == null || tileManager == null) {
+            return;
+        }
+        
+        nimons.entity.item.Item itemInHand = activeChef.getInventory();
+        
+        // Get position 2 blocks in front
+        Position chefPos = activeChef.getPosition();
+        Direction dir = activeChef.getDirection();
+        
+        int targetX = chefPos.getX();
+        int targetY = chefPos.getY();
+        
+        switch (dir) {
+            case UP:
+                targetY -= 2;
+                break;
+            case DOWN:
+                targetY += 2;
+                break;
+            case LEFT:
+                targetX -= 2;
+                break;
+            case RIGHT:
+                targetX += 2;
+                break;
+        }
+        
+        Position targetPos = new Position(targetX, targetY);
+        Tile targetTile = tileManager.getTileAt(targetPos);
+        
+        // Check if target tile is valid and empty
+        if (targetTile != null && targetTile.isWalkable() && targetTile.getItemOnTile() == null) {
+            targetTile.setItemOnTile(itemInHand);
+            activeChef.setInventory(null);
+            addLog("✓ Threw " + itemInHand.getName() + " 2 blocks forward");
+        } else {
+            addLog("✗ Cannot throw item there (blocked or occupied)");
+        }
+    }
+    
+    /**
+     * Add ingredient from tile to cooking utensil in chef's hand
+     */
+    private void addIngredientToUtensilInHand(Tile tile) {
+        if (activeChef == null || tile == null) {
+            return;
+        }
+        
+        nimons.entity.item.Item itemInHand = activeChef.getInventory();
+        if (!(itemInHand instanceof nimons.entity.item.interfaces.CookingDevice)) {
+            return;
+        }
+        
+        nimons.entity.item.Item itemOnTile = tile.getItemOnTile();
+        if (!(itemOnTile instanceof nimons.entity.item.interfaces.Preparable)) {
+            return;
+        }
+        
+        nimons.entity.item.interfaces.CookingDevice device = (nimons.entity.item.interfaces.CookingDevice) itemInHand;
+        nimons.entity.item.interfaces.Preparable ingredient = (nimons.entity.item.interfaces.Preparable) itemOnTile;
+        
+        try {
+            device.addIngredient(ingredient);
+            tile.setItemOnTile(null);
+            
+            String ingredientName = ((nimons.entity.item.Item)ingredient).getName();
+            String utensilName = ((nimons.entity.item.Item)device).getName();
+            addLog("✓ Added " + ingredientName + " to " + utensilName + " (will cook when placed on station)");
+            
+        } catch (nimons.exceptions.StationFullException e) {
+            addLog("✗ " + e.getMessage());
+        } catch (nimons.exceptions.InvalidIngredientStateException e) {
+            addLog("✗ " + e.getIngredientName() + " must be " + e.getRequiredState() + " (currently: " + e.getCurrentState() + ")");
+        } catch (Exception e) {
+            addLog("✗ Failed to add ingredient: " + e.getMessage());
+        }
     }
     
     private void handleChefMovement(long currentTime) {
@@ -1414,9 +1562,14 @@ public class GameScreen {
         // Draw item held by chef (above head)
         if (chef.getInventory() != null) {
             Image itemImg = getItemImage(chef.getInventory());
-            // Special handling for boiling pot in hand
-            if (itemImg == null && chef.getInventory().getName().toLowerCase().contains("boiling")) {
-                itemImg = itemImages.get("boilingpot_take");
+            // Special handling for empty utensils in hand
+            if (itemImg == null) {
+                String itemName = chef.getInventory().getName().toLowerCase();
+                if (itemName.contains("boiling") || itemName.contains("pot")) {
+                    itemImg = itemImages.get("boilingpot_take");
+                } else if (itemName.contains("frying") || itemName.contains("pan")) {
+                    itemImg = itemImages.get("fryingpan_empty");
+                }
             }
             if (itemImg != null) {
                 double itemSize = tileSize * 0.5;

@@ -45,6 +45,14 @@ public abstract class Ingredient extends Item implements Preparable {
         return (float) Math.min(currentCookTime, GameConfig.TIME_TO_COOK_MS); 
     }
     
+    /**
+     * Mengembalikan waktu total cooking yang sebenarnya (termasuk burn phase).
+     * Digunakan untuk progress bar burn phase.
+     */
+    public float getTotalCookingTime() {
+        return (float) currentCookTime;
+    }
+    
     // ----------------------------------------------------------------------------------
     
     /**

@@ -46,6 +46,9 @@ public class SoundManager {
      * Load semua sound effects dan musik
      */
     private void loadAllSounds() {
+        // Load music files
+        // Note: Music files are loaded on-demand in playMusic() method
+        
         // Load sound effects (WAV format)
         loadSoundEffect("chopping", "chopping.wav");
         loadSoundEffect("correct", "correct.wav");
@@ -105,8 +108,13 @@ public class SoundManager {
             currentMusicPlayer.play();
             currentMusicName = musicName;
             System.out.println("[SoundManager] Playing music: " + musicName);
-        } catch (NullPointerException e) {
-            System.err.println("[SoundManager] Failed to play music: " + musicName);
+        } catch (Exception e) {
+            System.err.println("[SoundManager] Failed to play music: " + musicName + " (" + filename + ")");
+            // Try fallback music
+            if (!filename.equals("music1.mp3")) {
+                System.out.println("[SoundManager] Trying fallback music...");
+                playMusic("fallback", "music1.mp3");
+            }
         }
     }
     
