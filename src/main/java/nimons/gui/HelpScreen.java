@@ -69,24 +69,12 @@ public class HelpScreen {
             new String[][] {
                 {"SPACE", "Interact with station/item"},
                 {"F", "Switch chef (multiplayer)"},
-                {"ESC", "Pause game"}
+                {"ESC", "Pause game"},
+                {"Q", "Throw item"}
             }
         );
         
-        // Station Legend Section
-        VBox stationBox = createInfoBox(
-            "STATION CODES",
-            new String[] {
-                "C - Cutting Station (chop ingredients & assemble dishes)",
-                "B - Boiling Pot (cook rice/pasta)",
-                "F - Frying Pan (cook fish/shrimp)",
-                "P - Plate Storage (get clean plates)",
-                "W - Washing Station (wash dirty plates)",
-                "S - Serving Station (deliver completed orders)"
-            }
-        );
-        
-        contentBox.getChildren().addAll(movementBox, actionsBox, stationBox);
+        contentBox.getChildren().addAll(movementBox, actionsBox);
         
         // Wrap content in ScrollPane
         ScrollPane scrollPane = new ScrollPane(contentBox);

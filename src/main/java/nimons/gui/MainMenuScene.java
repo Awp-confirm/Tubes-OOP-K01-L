@@ -98,7 +98,7 @@ public class MainMenuScene {
 
     private HBox createBottomButtons() {
         Button settings = createMenuButton("Settings");
-        Button help = createMenuButton("Help");
+        Button help = createMenuButton("How To Play");
         Button exit = createMenuButton("Exit");
 
         settings.setOnAction(e -> handleSettings());
