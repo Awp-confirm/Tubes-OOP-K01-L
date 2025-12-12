@@ -14,7 +14,8 @@ public class MainApp extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setWidth(1200);
         primaryStage.setHeight(800);
-        // Try to load custom font from resources (place your TTF under /assets/fonts/)
+        
+        // Load custom font dari resources
         try {
             String[] candidates = new String[] {
                 "/assets/fonts/PixelifySans.ttf",
@@ -43,7 +44,7 @@ public class MainApp extends Application {
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
         primaryStage.show();
-        menu.playMusic();  // Play main menu music
+        menu.playMusic();
     }
 
     public static void main(String[] args) {

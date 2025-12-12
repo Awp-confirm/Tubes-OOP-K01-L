@@ -8,9 +8,9 @@ public class GameSettings {
     private static GameSettings instance;
     
     public enum Difficulty {
-        EASY("Easy", -1),      // Unlimited lives
-        NORMAL("Normal", 3),   // 3 lives
-        HARDCORE("Hardcore", 1); // 1 life
+        EASY("Easy", -1),
+        NORMAL("Normal", 3),
+        HARDCORE("Hardcore", 1);
         
         private final String displayName;
         private final int lives;
@@ -36,7 +36,7 @@ public class GameSettings {
     private Difficulty currentDifficulty;
     
     private GameSettings() {
-        this.currentDifficulty = Difficulty.NORMAL; // Default
+        this.currentDifficulty = Difficulty.NORMAL;
     }
     
     public static GameSettings getInstance() {

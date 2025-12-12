@@ -6,12 +6,11 @@ package nimons.core;
  */
 public final class GameConfig {
     
-    // Prevent instantiation
     private GameConfig() {
         throw new AssertionError("GameConfig is a utility class and should not be instantiated");
     }
     
-    // ==================== GAME RULES ====================
+    // Konfigurasi Aturan Game
     
     /** Game duration in seconds (default: 5 minutes) */
     public static final long GAME_DURATION_SECONDS = 300;
@@ -32,7 +31,7 @@ public final class GameConfig {
     /** Order time limit in seconds */
     public static final int ORDER_DURATION_SECONDS = 60;
     
-    // ==================== WINDOW & RENDERING ====================
+    // Konfigurasi Window dan Rendering
     
     /** Game window width */
     public static final int WINDOW_WIDTH = 1200;
@@ -58,12 +57,12 @@ public final class GameConfig {
     /** Smooth movement interpolation speed */
     public static final double MOVE_SPEED = 0.3;
 
-    // ==================== UI / THEME ====================
+    // Konfigurasi UI dan Tema
 
     /** Default application font family (name expected after loading custom font) */
     public static final String DEFAULT_FONT_FAMILY = "Pixelify Sans";
     
-    // ==================== CHEF MOVEMENT ====================
+    // Konfigurasi Gerakan Chef
     
     /** Movement cooldown in milliseconds */
     public static final long MOVE_COOLDOWN_MS = 150;
@@ -74,7 +73,7 @@ public final class GameConfig {
     /** Dash distance in tiles */
     public static final int DASH_DISTANCE_TILES = 3;
     
-    // ==================== COOKING & CUTTING ====================
+    // Konfigurasi Memasak dan Pemotongan
     
     /** Cutting station required time in milliseconds */
     public static final float CUTTING_REQUIRED_TIME_MS = 3000.0f;
@@ -88,7 +87,7 @@ public final class GameConfig {
     /** Cooking progress log interval in milliseconds */
     public static final long COOKING_LOG_INTERVAL_MS = 1000;
     
-    // ==================== WASHING ====================
+    // Konfigurasi Pencucian
     
     /** Washing station required time in milliseconds */
     public static final float WASHING_REQUIRED_TIME_MS = 3000.0f;
@@ -96,7 +95,7 @@ public final class GameConfig {
     /** Washing progress log interval in milliseconds */
     public static final float WASHING_LOG_INTERVAL_MS = 1000.0f;
     
-    // ==================== SERVING ====================
+    // Konfigurasi Penyajian
     
     /** Plate return delay in milliseconds */
     public static final float PLATE_RETURN_DELAY_MS = 10000.0f;
@@ -104,7 +103,7 @@ public final class GameConfig {
     /** Initial plate stock */
     public static final int INITIAL_PLATE_STOCK = 4;
     
-    // ==================== ORDER DISPLAY ====================
+    // Konfigurasi Tampilan Pesanan
     
     /** Order card width */
     public static final double ORDER_CARD_WIDTH = 180;
@@ -118,7 +117,7 @@ public final class GameConfig {
     /** Order card margin from left edge */
     public static final double ORDER_MARGIN_LEFT = 20;
     
-    // ==================== UTENSIL CAPACITY ====================
+    // Konfigurasi Kapasitas Peralatan
     
     /** Boiling pot capacity */
     public static final int BOILING_POT_CAPACITY = 3;
@@ -126,7 +125,7 @@ public final class GameConfig {
     /** Frying pan capacity */
     public static final int FRYING_PAN_CAPACITY = 2;
     
-    // ==================== HELPER METHODS ====================
+    // Helper Methods - Konversi Waktu
     
     /**
      * Convert nanoseconds to milliseconds
