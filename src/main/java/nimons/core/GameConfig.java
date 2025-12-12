@@ -17,7 +17,7 @@ public final class GameConfig {
     public static final long GAME_DURATION_SECONDS = 300;
     
     /** Minimum score required to pass the game */
-    public static final int PASSING_SCORE_THRESHOLD = 500;
+    public static final int PASSING_SCORE_THRESHOLD = 600;
     
     /** Initial number of lives - DEPRECATED: Use GameSettings.getInitialLives() instead */
     @Deprecated
