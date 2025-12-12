@@ -105,6 +105,9 @@ public class GameScreen {
     private Image wallImage;
     private Image chefImage; // Chef idle image (menghadap kanan)
     private Image chefMoveGif; // Chef move animation (pergerakan ke kanan)
+    // Directional chef images (idle/move) keyed by Direction
+    private Map<Direction, Image> chefIdleImages = new HashMap<>();
+    private Map<Direction, Image> chefMoveImages = new HashMap<>();
     private Map<String, Image> stationImages;
     private Map<String, Image> itemImages; // For ingredients, plates, utensils
     private Image boilingPotFillGif; // GIF untuk boiling pot fill animation
@@ -222,12 +225,29 @@ public class GameScreen {
         }
         
         // Load chef image
-        chefImage = loadImage("/assets/picture/chef.gif");
+        chefImage = loadImage("/assets/picture/chef side idle.gif");
         System.out.println("Chef image loaded: " + (chefImage != null));
         
         // Load chef move animation GIF
-        chefMoveGif = loadImage("/assets/picture/move chef.gif");
+        chefMoveGif = loadImage("/assets/picture/chef side move.gif");
         System.out.println("Chef move animation loaded: " + (chefMoveGif != null));
+        
+    // Load directional chef assets (down/up). If you have left/right specific assets,
+    // you can place them here as well. We will reuse 'side' assets for RIGHT and flip for LEFT.
+    Image chefDownIdle = loadImage("/assets/picture/chef down idle.gif");
+    Image chefDownMove = loadImage("/assets/picture/chef down move.gif");
+    Image chefUpIdle = loadImage("/assets/picture/chef up idle.gif");
+    Image chefUpMove = loadImage("/assets/picture/chef up move.gif");
+
+    // Register to maps with fallbacks
+    if (chefDownIdle != null) { chefIdleImages.put(Direction.DOWN, chefDownIdle); System.out.println("✓ chef down idle loaded"); }
+    if (chefDownMove != null) { chefMoveImages.put(Direction.DOWN, chefDownMove); System.out.println("✓ chef down move loaded"); }
+    if (chefUpIdle != null) { chefIdleImages.put(Direction.UP, chefUpIdle); System.out.println("✓ chef up idle loaded"); }
+    if (chefUpMove != null) { chefMoveImages.put(Direction.UP, chefUpMove); System.out.println("✓ chef up move loaded"); }
+
+    // Use side assets for RIGHT and LEFT (LEFT will be drawn flipped)
+    if (chefImage != null) { chefIdleImages.put(Direction.RIGHT, chefImage); chefIdleImages.put(Direction.LEFT, chefImage); }
+    if (chefMoveGif != null) { chefMoveImages.put(Direction.RIGHT, chefMoveGif); chefMoveImages.put(Direction.LEFT, chefMoveGif); }
         
         // Load station images
         Image tableImg = loadImage("/assets/picture/table.png");
@@ -400,11 +420,23 @@ public class GameScreen {
      */
     private Image getChefImage(Chef chef) {
         Boolean isMoving = chefIsMoving.getOrDefault(chef, false);
-        
-        if (isMoving && chefMoveGif != null) {
-            return chefMoveGif;  // Show movement animation GIF
+        Direction dir = chef.getDirection();
+
+        // Prefer directional images if available
+        if (isMoving) {
+            Image dirMove = chefMoveImages.get(dir);
+            if (dirMove != null) return dirMove;
+            // fallback to generic move gif
+            if (chefMoveGif != null) return chefMoveGif;
+        } else {
+            Image dirIdle = chefIdleImages.get(dir);
+            if (dirIdle != null) return dirIdle;
+            // fallback to generic idle
+            if (chefImage != null) return chefImage;
         }
-        return chefImage;  // Show idle PNG image
+
+        // Final fallback
+        return chefImage != null ? chefImage : chefMoveGif;
     }
     
     /**
@@ -436,14 +468,12 @@ public class GameScreen {
                 break;
                 
             case UP:
-                // Rotate 180 degrees (show as moving upward)
-                gc.translate(x + size/2, y + size/2);  // Move to center
-                gc.rotate(180);                         // Rotate 180°
-                gc.drawImage(image, -size/2, -size/2, size, size);
+                // Up assets should already be oriented upwards - no rotation
+                gc.drawImage(image, x, y, size, size);
                 break;
-                
+
             case DOWN:
-                // Normal drawing but could add slight rotation if needed
+                // Down assets should already be oriented downwards - no rotation
                 gc.drawImage(image, x, y, size, size);
                 break;
                 
@@ -879,8 +909,6 @@ public class GameScreen {
         // Check for plates with dishes
         if (item instanceof nimons.entity.item.Plate) {
             nimons.entity.item.Plate plate = (nimons.entity.item.Plate) item;
-            System.out.println("DEBUG getItemImage: Plate detected - clean=" + plate.isClean() + 
-                               ", hasFood=" + (plate.getFood() != null));
             
             // If plate has food, determine combination image
             if (plate.getFood() != null) {

@@ -61,6 +61,7 @@ Di **Nimons Cooked**, kamu akan menjalankan peran sebagai chef yang harus mengel
 | **SPACEBAR** | Melakukan aksi/interaksi dengan station |
 | **F** | Switch antara Chef 1 dan Chef 2 |
 | **ESC** | Pause game |
+| **Q** | Melempar Item |
 
 ### Alur Permainan
 
