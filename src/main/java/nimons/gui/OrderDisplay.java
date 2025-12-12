@@ -72,7 +72,7 @@ public class OrderDisplay {
         renderDishIcon(gc, order, dishIconX, dishIconY, itemImages);
         
         // Ingredients displayed horizontally (centered below dish)
-        double ingredientsY = dishIconY + DISH_ICON_SIZE + 35;
+        double ingredientsY = dishIconY + DISH_ICON_SIZE + 30;
         renderIngredientsHorizontal(gc, order, x, ingredientsY, itemImages);
         
         // Restore graphics context
