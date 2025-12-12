@@ -262,7 +262,7 @@ public class GameScreen {
         loadAndRegisterImage("wash", "/assets/picture/washing station.png", "washing station.png");
         loadAndRegisterImage("plateStorage", "/assets/picture/plate storage.png", "plate storage.png");
         loadAndRegisterImage("trash", "/assets/picture/trash station.png", "trash station.png");
-        loadAndRegisterImage("boilingPot", "/assets/picture/boiling pot empty.png", "boiling pot empty.png");
+        loadAndRegisterImage("cookingStation", "/assets/picture/cooking station.png", "cooking station.png");
         
         // Load ingredient box images
         loadAndRegisterImage("boxCucumber", "/assets/picture/box cucumber.png", "box cucumber.png");
@@ -297,7 +297,6 @@ public class GameScreen {
         itemImages.put("shrimp_burned", loadImage("/assets/picture/shrimp burned.png"));
         
         // Load utensil images (for empty utensils)
-        itemImages.put("boilingpot_empty", loadImage("/assets/picture/boiling pot empty.png"));
         itemImages.put("boilingpot_take", loadImage("/assets/picture/boiling pot take empty.png"));
         itemImages.put("fryingpan_empty", loadImage("/assets/picture/frying pan.png"));
         
@@ -653,8 +652,8 @@ public class GameScreen {
 
     private Image getStationImage(Station station) {
         if (station instanceof CookingStation) {
-            // R = Cooking Station (Stove/Oven)
-            return stationImages.getOrDefault("boilingPot", stationImages.get("cook"));
+            // R = Cooking Station
+            return stationImages.getOrDefault("cookingStation", stationImages.get("cook"));
         } else if (station instanceof CuttingStation) {
             // C = Cutting Station - gunakan asset khusus
             return stationImages.getOrDefault("cutting", stationImages.get("table"));
@@ -718,8 +717,12 @@ public class GameScreen {
                 }
             }
             
-            // Empty utensil - return null so drawChef can handle it specially
-            // (for chef holding: uses boilingpot_take, for station: uses boilingpot_empty)
+            // Empty utensil - return image for floor/station display
+            if (itemName.contains("boiling") || itemName.contains("pot")) {
+                return itemImages.get("boilingpot_take");
+            } else if (itemName.contains("frying") || itemName.contains("pan")) {
+                return itemImages.get("fryingpan_empty");
+            }
             return null;
         }
         
@@ -911,11 +914,11 @@ public class GameScreen {
             nimons.entity.item.KitchenUtensil utensil = cs.getUtensils();
             
             if (utensil != null) {
+                // Utensil exists on station - render the utensil image as base layer
                 boolean hasContents = utensil.getContents() != null && !utensil.getContents().isEmpty();
                 
-                // Check if any ingredient is still cooking
+                // Check cooking states
                 boolean isStillCooking = false;
-                // Check if any ingredient is COOKED (burning phase)
                 boolean isInBurnPhase = false;
                 
                 if (hasContents) {
@@ -931,20 +934,26 @@ public class GameScreen {
                         }
                     }
                     
-                    // Only show fill GIF if still cooking (not finished or burning)
+                    // Layer 1: Show fill GIF if still cooking
                     if (isStillCooking && boilingPotFillGif != null) {
                         double gifSize = tileSize * 0.45;
                         double gifX = screenX + (tileSize - gifSize) / 2;
                         double gifY = screenY + (tileSize - gifSize) / 2 + tileSize * 0.05;
                         gc.drawImage(boilingPotFillGif, gifX, gifY, gifSize, gifSize);
                     } else {
-                        // If not cooking or no GIF, show fallback ingredient/utensil image
-                        Image itemImg = getItemImage(utensil);
-                        if (itemImg != null) {
+                        // Layer 1: Show empty utensil image (base layer when not cooking)
+                        String utensilName = utensil.getName().toLowerCase();
+                        Image emptyImg = null;
+                        if (utensilName.contains("boiling") || utensilName.contains("pot")) {
+                            emptyImg = itemImages.get("boilingpot_take");
+                        } else if (utensilName.contains("frying") || utensilName.contains("pan")) {
+                            emptyImg = itemImages.get("fryingpan_empty");
+                        }
+                        if (emptyImg != null) {
                             double itemSize = tileSize * 0.5;
                             double itemX = screenX + (tileSize - itemSize) / 2;
                             double itemY = screenY + (tileSize - itemSize) / 2;
-                            gc.drawImage(itemImg, itemX, itemY, itemSize, itemSize);
+                            gc.drawImage(emptyImg, itemX, itemY, itemSize, itemSize);
                         }
                     }
                     
@@ -957,7 +966,7 @@ public class GameScreen {
                     String utensilName = utensil.getName().toLowerCase();
                     Image emptyImg = null;
                     if (utensilName.contains("boiling") || utensilName.contains("pot")) {
-                        emptyImg = itemImages.get("boilingpot_empty");
+                        emptyImg = itemImages.get("boilingpot_take");
                     } else if (utensilName.contains("frying") || utensilName.contains("pan")) {
                         emptyImg = itemImages.get("fryingpan_empty");
                     }
@@ -969,6 +978,7 @@ public class GameScreen {
                     }
                 }
             }
+            // If utensil == null, only cooking station base image is shown (no overlay)
         }
         
         // Render items on AssemblyStation
