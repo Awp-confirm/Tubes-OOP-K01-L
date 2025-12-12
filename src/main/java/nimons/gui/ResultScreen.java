@@ -7,6 +7,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import nimons.core.SoundManager;
 import nimons.logic.GameState.FailReason;
 
 /**
@@ -60,6 +61,13 @@ public class ResultScreen {
         stage.setScene(scene);
         stage.setTitle("Nimonscooked - Result");
         
+        // Play pass/fail sound effect based on result
+        if (isPassed) {
+            SoundManager.getInstance().playSoundEffect("pass");
+        } else {
+            SoundManager.getInstance().playSoundEffect("fail");
+        }
+        
         // Render once
         render();
     }
@@ -88,33 +96,32 @@ public class ResultScreen {
         double titleY = boxY + 120;
         gc.setFill(isPassed ? Color.web("#2ecc71") : Color.web("#e74c3c"));
         gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 80));
-        drawCenteredText(gc, resultMessage, boxX + (boxWidth - 130) / 2, titleY);
-        
+        drawCenteredText(gc, resultMessage, boxX + (boxWidth - 100) / 2 - 20, titleY + 30);
         // Score display section with better spacing
         double scoreStartY = titleY + 100;
         
         gc.setFill(Color.web("#F2C38F"));
         gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 28));
-        drawCenteredText(gc, "Final Score", boxX + (boxWidth - 70) / 2, scoreStartY);
+        drawCenteredText(gc, "Final Score", boxX + boxWidth / 2 - 40, scoreStartY);
         
         gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 60));
         gc.setFill(Color.web("#E8A36B"));
-        drawCenteredText(gc, String.valueOf(finalScore), boxX + (boxWidth - 30) / 2, scoreStartY + 70);
+        drawCenteredText(gc, String.valueOf(finalScore), boxX + boxWidth / 2 - 10, scoreStartY + 70);
         
         // Pass threshold info with better formatting
         gc.setFill(Color.web("#F2C38F"));
         gc.setFont(Font.font("Arial", 20));
-        drawCenteredText(gc, "Required: " + passThreshold, boxX + (boxWidth - 50) / 2, scoreStartY + 110);
+        drawCenteredText(gc, "Required: " + passThreshold, boxX + boxWidth / 2 - 20, scoreStartY + 110);
         
-        // Fail description (if failed)
+        // Fail description (if failed) - slightly shifted left
         if (!isPassed && failDescription != null) {
             gc.setFill(Color.web("#e74c3c"));
             gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 18));
-            drawCenteredText(gc, failDescription, boxX + (boxWidth - 50) / 2, scoreStartY + 150);
+            drawCenteredText(gc, failDescription, boxX + boxWidth / 2 - 60, scoreStartY + 150);
         }
         
-        // Back to menu button
-        drawButton(gc, "Back to Menu", boxX + (boxWidth - 190) / 2, boxY + boxHeight - 120, 200, 50);
+        // Back to menu button - moved down
+        drawButton(gc, "Back to Menu", boxX + (boxWidth - 190) / 2, boxY + boxHeight - 80, 200, 50);
     }
     
     private String getFailDescription(FailReason reason, boolean passed) {
@@ -191,6 +198,7 @@ public class ResultScreen {
         GameScreen.resetInstance();
         
         MainMenuScene menu = new MainMenuScene(stage);
+        menu.playMusic();  // Play main menu music
         Scene scene = new Scene(menu.rootPane, 1920, 1080);
         stage.setScene(scene);
         stage.show();

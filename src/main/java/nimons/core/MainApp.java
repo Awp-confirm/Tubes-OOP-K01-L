@@ -19,6 +19,7 @@ public class MainApp extends Application {
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
         primaryStage.show();
+        menu.playMusic();  // Play main menu music
     }
 
     public static void main(String[] args) {

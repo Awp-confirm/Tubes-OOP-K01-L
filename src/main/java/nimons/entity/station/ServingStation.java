@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import nimons.core.GameConfig;
+import nimons.core.SoundManager;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Dish;
@@ -117,6 +118,8 @@ public class ServingStation extends Station {
                 log("SUCCESS", "ORDER CORRECT! +" + reward + " points. Order removed from queue.");
             } else {
                 log("FAIL", "ORDER MISMATCH! Dish '" + masakan.getName() + "' is not in the order list.");
+                // Play wrong sound effect when serving wrong dish
+                SoundManager.getInstance().playSoundEffect("wrong");
                 // Reduce lives for wrong serve
                 GameState gameState = getGameState();
                 if (gameState != null) {

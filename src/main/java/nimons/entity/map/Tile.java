@@ -67,8 +67,9 @@ public class Tile {
      * - Not a wall
      * - No station on it
      * - No chef on it
+     * - No item dropped on it
      */
     public boolean isWalkable() {
-        return !wall && station == null && chefOnTile == null;
+        return !wall && station == null && chefOnTile == null && itemOnTile == null;
     }
 }

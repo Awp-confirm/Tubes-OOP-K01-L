@@ -1,6 +1,7 @@
 package nimons.entity.station;
 
 import nimons.core.GameConfig;
+import nimons.core.SoundManager;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.Item;
@@ -17,7 +18,8 @@ public class CuttingStation extends Station {
     private static CuttingStation activeStation; // Track which station is currently being used
     private Item placedItem; 
     private float currentProgress = 0;
-    private Chef currentCutter; 
+    private Chef currentCutter;
+    private long lastChoppingSound = 0; // Track when chopping sound was last played
 
     public CuttingStation(String name, Position position) {
         super(name, position);
@@ -192,10 +194,19 @@ public class CuttingStation extends Station {
                 
                 this.currentCutter = chef;
                 chef.setBusy(true);
-                if (currentProgress > 0) {
-                    log("INFO", "RESUMED: Chopping resumed from " + (int)currentProgress + "ms.");
-                } else {
+                
+                // Play chopping sound effect (limited to 3 seconds, only once per chop action)
+                long currentTime = System.currentTimeMillis();
+                if (currentProgress == 0) {
+                    // Only play sound when starting new chop, not when resuming
+                    // Limit sound to 3 seconds
+                    if (currentTime - lastChoppingSound >= 3000) {
+                        SoundManager.getInstance().playSoundEffect("chopping");
+                        lastChoppingSound = currentTime;
+                    }
                     log("ACTION", "STARTED: Chopping " + placedItem.getName() + "...");
+                } else {
+                    log("INFO", "RESUMED: Chopping resumed from " + (int)currentProgress + "ms.");
                 }
                 return; 
             } else {

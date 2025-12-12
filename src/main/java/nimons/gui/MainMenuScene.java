@@ -21,6 +21,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Polygon;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import nimons.core.SoundManager;
 
 public class MainMenuScene {
 
@@ -98,7 +99,7 @@ public class MainMenuScene {
 
     private HBox createBottomButtons() {
         Button settings = createMenuButton("Settings");
-        Button help = createMenuButton("Help");
+        Button help = createMenuButton("How To Play");
         Button exit = createMenuButton("Exit");
 
         settings.setOnAction(e -> handleSettings());
@@ -165,12 +166,10 @@ public class MainMenuScene {
     }
     
     /**
-     * Display the main menu scene
+     * Play main menu music (scene is already set in MainApp)
      */
-    public void start() {
-        javafx.scene.Scene scene = new javafx.scene.Scene(rootPane);
-        stage.setScene(scene);
-        stage.setTitle("Nimonscooked - Main Menu");
-        stage.show();
+    public void playMusic() {
+        // Play main menu music
+        SoundManager.getInstance().playMusic("mainMenuMusic", "music1.mp3");
     }
 }

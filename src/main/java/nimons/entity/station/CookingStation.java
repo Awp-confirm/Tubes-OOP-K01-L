@@ -3,6 +3,7 @@ package nimons.entity.station;
 import java.util.ArrayList;
 import java.util.List;
 
+import nimons.core.SoundManager;
 import nimons.entity.chef.Chef;
 import nimons.entity.common.Position;
 import nimons.entity.item.BoilingPot;
@@ -25,6 +26,7 @@ import nimons.exceptions.StationFullException;
 public class CookingStation extends Station {
 
     private KitchenUtensil utensils;
+    private long lastCookingSound = 0;  // Track last time cooking sound was played
 
     public CookingStation(String name, Position position) {
         super(name, position);
@@ -65,6 +67,7 @@ public class CookingStation extends Station {
             ((CookingDevice) utensils).update(deltaTime); 
             
             // Update Cooking Timer untuk setiap Ingredient di dalam Utensil
+            boolean isAnyIngredientCooking = false;
             for (Preparable prep : utensils.getContents()) {
                 if (prep instanceof Ingredient) {
                     Ingredient ingredient = (Ingredient) prep;
@@ -73,6 +76,25 @@ public class CookingStation extends Station {
                     if (timerLog != null) {
                         log("TIMER", timerLog); 
                     }
+                    
+                    // Check if any ingredient is cooking
+                    if (ingredient.getState() == IngredientState.COOKING) {
+                        isAnyIngredientCooking = true;
+                    }
+                }
+            }
+            
+            // Play cooking sound (frying/boiling) every 500ms if cooking
+            if (isAnyIngredientCooking) {
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastCookingSound >= 500) {
+                    // Determine sound based on utensil type
+                    if (utensils instanceof FryingPan) {
+                        SoundManager.getInstance().playSoundEffect("frying");
+                    } else if (utensils instanceof BoilingPot) {
+                        SoundManager.getInstance().playSoundEffect("boiling");
+                    }
+                    lastCookingSound = currentTime;
                 }
             }
         }
@@ -207,6 +229,9 @@ public class CookingStation extends Station {
                     
                     String ingredientName = ((Item)bahan).getName();
                     log("SUCCESS", "START COOKING: " + ingredientName + " placed into " + utensils.getName() + ".");
+                    
+                    // Play frying/cooking sound effect
+                    SoundManager.getInstance().playSoundEffect("frying");
                     
                 } catch (StationFullException e) {
                     log("FAIL", "✗ " + e.getMessage());
