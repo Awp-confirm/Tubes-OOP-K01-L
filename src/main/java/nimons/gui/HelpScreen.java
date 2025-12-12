@@ -68,7 +68,7 @@ public class HelpScreen {
             "ACTIONS",
             new String[][] {
                 {"SPACE", "Interact with station/item"},
-                {"K", "Switch chef (multiplayer)"},
+                {"F", "Switch chef (multiplayer)"},
                 {"ESC", "Pause game"}
             }
         );

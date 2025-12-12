@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import nimons.core.GameConfig;
+import nimons.core.SoundManager;
 import nimons.entity.item.Dish;
 import nimons.entity.order.Order;
 import nimons.entity.order.OrderStatus;
@@ -59,6 +60,8 @@ public class OrderManager {
                 
                 if (newRemaining <= 0) {
                     order.setStatus(OrderStatus.FAILED);
+                    // Play wrong sound when order timeout
+                    nimons.core.SoundManager.getInstance().playSoundEffect("wrong");
                     if (gameState != null) {
                         gameState.loseLife();
                     }
@@ -158,6 +161,9 @@ public class OrderManager {
         if (earliestMatch != null) {
             earliestMatch.setStatus(OrderStatus.COMPLETED);
             activeOrders.remove(earliestMatch);
+            
+            // Play correct sound effect when order completed successfully
+            SoundManager.getInstance().playSoundEffect("correct");
         }
         
         return earliestMatch;
