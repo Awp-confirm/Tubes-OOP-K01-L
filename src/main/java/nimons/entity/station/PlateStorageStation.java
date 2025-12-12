@@ -101,9 +101,16 @@ public class PlateStorageStation extends Station {
     
     /**
      * Digunakan oleh ServingStation/WashingStation untuk mengembalikan piring kotor/bersih ke tumpukan (Internal Add).
+     * Membatasi jumlah plate maksimal sesuai INITIAL_PLATE_STOCK.
      */
     public void addPlateToStack(Plate p) {
         if (p != null) {
+            // Jangan tambah jika sudah mencapai jumlah maksimal
+            if (plates.size() >= GameConfig.INITIAL_PLATE_STOCK) {
+                log("WARNING", "REJECTED: Cannot add plate. Storage at maximum capacity (" + GameConfig.INITIAL_PLATE_STOCK + " plates).");
+                return;
+            }
+            
             String status = p.isClean() ? "Clean" : "Dirty";
             
             plates.push(p);

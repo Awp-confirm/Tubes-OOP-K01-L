@@ -20,7 +20,7 @@ public class SakanaMaki extends Recipe {
         return Arrays.asList(
             new IngredientRequirement(Nori.class, IngredientState.RAW),
             new IngredientRequirement(Rice.class, IngredientState.COOKED),
-            new IngredientRequirement(Fish.class, IngredientState.RAW)
+            new IngredientRequirement(Fish.class, IngredientState.CHOPPED)
         );
     }
 }

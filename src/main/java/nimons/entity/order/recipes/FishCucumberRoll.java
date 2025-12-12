@@ -21,7 +21,7 @@ public class FishCucumberRoll extends Recipe {
         return Arrays.asList(
             new IngredientRequirement(Nori.class, IngredientState.RAW),
             new IngredientRequirement(Rice.class, IngredientState.COOKED),
-            new IngredientRequirement(Fish.class, IngredientState.RAW),
+            new IngredientRequirement(Fish.class, IngredientState.CHOPPED),
             new IngredientRequirement(Cucumber.class, IngredientState.CHOPPED)
         );
     }

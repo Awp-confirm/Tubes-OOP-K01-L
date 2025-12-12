@@ -131,29 +131,20 @@ public class ServingStation extends Station {
                 }
             }
             
-            // --- LOGIKA PENGEMBALIAN PIRING KOTOR (LANGSUNG KE STACK) ---
+            // --- LOGIKA PENGEMBALIAN PIRING KOTOR (DENGAN DELAY 10 DETIK) ---
             
             // 1. Bersihkan Dish dari piring (Plate.removeDish() membersihkan dish dan set status kotor)
             log("DEBUG", "Before removeDish: isClean=" + piring.isClean() + ", hasFood=" + (piring.getFood() != null));
             piring.removeDish(); 
             log("DEBUG", "After removeDish: isClean=" + piring.isClean() + ", hasFood=" + (piring.getFood() != null));
 
-            // 2. Ambil PlateStorage dari Singleton SEBELUM hapus dari chef
-            PlateStorageStation plateStorage = PlateStorageStation.getInstance();
-            
-            if (plateStorage == null) {
-                log("ERROR", "Plate Storage not initialized! Dirty plate lost."); 
-                chef.setInventory(null);
-                return;
-            }
-
-            // 3. Hapus dari tangan Chef
+            // 2. Hapus dari tangan Chef
             chef.setInventory(null); 
             log("DEBUG", "Chef inventory cleared");
 
-            // 4. Langsung masukkan ke top of stack
-            plateStorage.addPlateToStack(piring);
-            log("SUCCESS", "DIRTY PLATE RETURNED: Plate (clean=" + piring.isClean() + ") added to PlateStorage.");
+            // 3. Tambahkan ke pending returns list dengan delay 10 detik
+            pendingReturns.add(new PendingPlate(piring));
+            log("SUCCESS", "DIRTY PLATE QUEUED: Plate added to return queue. Will return in 10 seconds.");
         } else {
             log("INFO", "Only plated items can be served here.");
         }

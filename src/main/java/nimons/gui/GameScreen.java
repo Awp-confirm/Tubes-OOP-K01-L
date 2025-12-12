@@ -103,10 +103,14 @@ public class GameScreen {
     // Asset images
     private Image floorImage;
     private Image wallImage;
-    private Image chefImage;
+    private Image chefImage; // Chef idle image (menghadap kanan)
+    private Image chefMoveGif; // Chef move animation (pergerakan ke kanan)
     private Map<String, Image> stationImages;
     private Map<String, Image> itemImages; // For ingredients, plates, utensils
     private Image boilingPotFillGif; // GIF untuk boiling pot fill animation
+    
+    // Chef animation tracking
+    private Map<Chef, Boolean> chefIsMoving = new HashMap<>(); // Track apakah chef sedang bergerak
 
     // --- LOGGING & SINGLETON FIELDS ---
     private List<String> onScreenLogs = new ArrayList<>();
@@ -218,8 +222,12 @@ public class GameScreen {
         }
         
         // Load chef image
-        chefImage = loadImage("/assets/picture/chef.png");
+        chefImage = loadImage("/assets/picture/chef.gif");
         System.out.println("Chef image loaded: " + (chefImage != null));
+        
+        // Load chef move animation GIF
+        chefMoveGif = loadImage("/assets/picture/move chef.gif");
+        System.out.println("Chef move animation loaded: " + (chefMoveGif != null));
         
         // Load station images
         Image tableImg = loadImage("/assets/picture/table.png");
@@ -340,6 +348,68 @@ public class GameScreen {
             System.out.println("✓ " + displayName + " loaded");
         }
     }
+    
+    /**
+     * Get the correct chef image based on movement state
+     * @param chef The chef entity
+     * @return The appropriate Image (GIF if moving, PNG if idle)
+     */
+    private Image getChefImage(Chef chef) {
+        Boolean isMoving = chefIsMoving.getOrDefault(chef, false);
+        
+        if (isMoving && chefMoveGif != null) {
+            return chefMoveGif;  // Show movement animation GIF
+        }
+        return chefImage;  // Show idle PNG image
+    }
+    
+    /**
+     * Apply directional transformation to chef image based on facing direction
+     * @param gc GraphicsContext to draw on
+     * @param image The chef image to draw
+     * @param x The x coordinate
+     * @param y The y coordinate
+     * @param size The size of the chef sprite
+     * @param direction The direction the chef is facing
+     */
+    private void drawChefWithDirection(GraphicsContext gc, Image image, double x, double y, double size, Direction direction) {
+        if (image == null) return;
+        
+        // Save the current transform
+        gc.save();
+        
+        switch (direction) {
+            case RIGHT:
+                // Normal - no transformation needed
+                gc.drawImage(image, x, y, size, size);
+                break;
+                
+            case LEFT:
+                // Flip horizontally
+                gc.translate(x + size, y);  // Move to right edge
+                gc.scale(-1, 1);             // Flip horizontally
+                gc.drawImage(image, 0, 0, size, size);
+                break;
+                
+            case UP:
+                // Rotate 180 degrees (show as moving upward)
+                gc.translate(x + size/2, y + size/2);  // Move to center
+                gc.rotate(180);                         // Rotate 180°
+                gc.drawImage(image, -size/2, -size/2, size, size);
+                break;
+                
+            case DOWN:
+                // Normal drawing but could add slight rotation if needed
+                gc.drawImage(image, x, y, size, size);
+                break;
+                
+            default:
+                gc.drawImage(image, x, y, size, size);
+        }
+        
+        // Restore the transform
+        gc.restore();
+    }
 
     private void loadMap(String stageId) {
         try {
@@ -368,7 +438,8 @@ public class GameScreen {
             if (!spawnPositions.isEmpty()) {
                 // Chef 1
                 Position spawnPos1 = spawnPositions.get(0);
-                playerChef = new Chef("player1", "Chef 1", spawnPos1, Direction.DOWN);
+                playerChef = new Chef("player1", "Chef 1", spawnPos1, Direction.RIGHT);
+                chefIsMoving.put(playerChef, false); // Chef 1 awalnya idle
                 
                 // Place chef 1 on tile
                 Tile spawnTile1 = tileManager.getTileAt(spawnPos1);
@@ -391,7 +462,8 @@ public class GameScreen {
                     }
                 }
                 
-                chef2 = new Chef("player2", "Chef 2", spawnPos2, Direction.DOWN);
+                chef2 = new Chef("player2", "Chef 2", spawnPos2, Direction.RIGHT);
+                chefIsMoving.put(chef2, false); // Chef 2 awalnya idle
                 
                 // Place chef 2 on tile
                 Tile spawnTile2 = tileManager.getTileAt(spawnPos2);
@@ -482,6 +554,9 @@ public class GameScreen {
             } else {
                 chefRenderX = chefTargetX;
                 chefRenderY = chefTargetY;
+                
+                // Chef telah selesai bergerak, set to idle state
+                chefIsMoving.put(activeChef, false);
             }
         }
         
@@ -1434,6 +1509,9 @@ public class GameScreen {
             
             // Check if can move to new position
             if (tileManager.isWalkable(newPos)) {
+                // Mark chef as moving
+                chefIsMoving.put(activeChef, true);
+                
                 // Remove chef from old tile
                 Tile oldTile = tileManager.getTileAt(currentPos);
                 if (oldTile != null) {
@@ -1532,9 +1610,12 @@ public class GameScreen {
         double chefScreenX = offsetX + drawX * tileSize;
         double chefScreenY = offsetY + drawY * tileSize;
         
-        if (chefImage != null) {
-            // Draw chef image
-            gc.drawImage(chefImage, chefScreenX, chefScreenY, tileSize, tileSize);
+        // Get the appropriate chef image based on movement state
+        Image chefDisplayImage = getChefImage(chef);
+        
+        if (chefDisplayImage != null) {
+            // Draw chef image with directional transformation
+            drawChefWithDirection(gc, chefDisplayImage, chefScreenX, chefScreenY, tileSize, chef.getDirection());
         } else {
             // Fallback: Draw chef as a circle if image not loaded
             gc.setFill(Color.web("#ff6b6b"));
@@ -1563,11 +1644,6 @@ public class GameScreen {
                     break;
             }
         }
-        
-        // Draw chef name label
-        gc.setFill(Color.WHITE);
-        gc.setFont(javafx.scene.text.Font.font(tileSize * 0.2));
-        gc.fillText(chef.getName(), chefScreenX + tileSize * 0.1, chefScreenY - tileSize * 0.05);
         
         // Draw item held by chef (above head)
         if (chef.getInventory() != null) {
