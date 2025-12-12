@@ -48,7 +48,7 @@ public class StageSelectScreen {
         
         // Title
         Label title = new Label("SELECT STAGE");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 48));
+    title.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 48));
         title.setTextFill(Color.web("#F2C38F"));
         title.setAlignment(Pos.CENTER);
         title.setPadding(new Insets(30, 20, 20, 20));
@@ -102,7 +102,7 @@ public class StageSelectScreen {
         listBox.setEffect(new DropShadow(12, Color.color(0, 0, 0, 0.6)));
         
         Label listTitle = new Label("STAGES");
-        listTitle.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+    listTitle.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 24));
         listTitle.setTextFill(Color.web("#E8A36B"));
         
         // Add stages
@@ -147,11 +147,11 @@ public class StageSelectScreen {
         header.setAlignment(Pos.CENTER_LEFT);
         
         Label nameLabel = new Label(stageName);
-        nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+    nameLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 18));
         nameLabel.setTextFill(Color.web("#F2C38F"));
         
         Label statusLabel = new Label(getStatusText(status));
-        statusLabel.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+    statusLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 12));
         statusLabel.setTextFill(getStatusColor(status));
         statusLabel.setPadding(new Insets(3, 10, 3, 10));
         statusLabel.setBackground(new Background(new BackgroundFill(
@@ -255,14 +255,14 @@ public class StageSelectScreen {
         
         // Stage name
         Label nameLabel = new Label(stageName);
-        nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+    nameLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 36));
         nameLabel.setTextFill(Color.web("#F2C38F"));
         nameLabel.setWrapText(true);
         nameLabel.setTextAlignment(TextAlignment.CENTER);
         
         // Status badge
         Label statusBadge = new Label(getStatusTextDetail(status));
-        statusBadge.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+    statusBadge.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 20));
         statusBadge.setTextFill(getStatusColor(status));
         statusBadge.setPadding(new Insets(8, 20, 8, 20));
         statusBadge.setBackground(new Background(new BackgroundFill(
@@ -270,7 +270,7 @@ public class StageSelectScreen {
         
         // Description
         Label descLabel = new Label(description);
-        descLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 16));
+    descLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.NORMAL, 16));
         descLabel.setTextFill(Color.web("#D4A574"));
         descLabel.setWrapText(true);
         descLabel.setTextAlignment(TextAlignment.CENTER);
@@ -286,7 +286,7 @@ public class StageSelectScreen {
         mapPreview.setEffect(new DropShadow(5, Color.color(0, 0, 0, 0.5)));
         
         Label mapLabel = new Label("MAP PREVIEW");
-        mapLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+    mapLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 14));
         mapLabel.setTextFill(Color.web("#888888"));
         
         Label mapName = new Label(stageId);
@@ -308,7 +308,7 @@ public class StageSelectScreen {
         Button playButton = new Button(status == StageStatus.LOCKED ? "LOCKED" : "PLAY STAGE");
         playButton.setMinWidth(300);
         playButton.setMinHeight(60);
-        playButton.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+    playButton.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 24));
         playButton.setDisable(status == StageStatus.LOCKED);
         
         if (status == StageStatus.LOCKED) {
@@ -367,11 +367,11 @@ public class StageSelectScreen {
         box.setAlignment(Pos.CENTER);
         
         Label labelText = new Label(label);
-        labelText.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+    labelText.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 14));
         labelText.setTextFill(Color.web("#A0866F"));
         
         Label valueText = new Label(value);
-        valueText.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+    valueText.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 36));
         valueText.setTextFill(Color.web(valueColor));
         
         box.getChildren().addAll(labelText, valueText);
@@ -396,11 +396,11 @@ public class StageSelectScreen {
         header.setAlignment(Pos.CENTER);
         
         Label nameLabel = new Label(stageName);
-        nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 28));
+    nameLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 28));
         nameLabel.setTextFill(Color.web("#F2C38F"));
         
-        Label statusLabel = new Label(getStatusText(status));
-        statusLabel.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+    Label statusLabel = new Label(getStatusText(status));
+    statusLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 18));
         statusLabel.setTextFill(getStatusColor(status));
         statusLabel.setPadding(new Insets(5, 15, 5, 15));
         statusLabel.setBackground(new Background(new BackgroundFill(
@@ -410,7 +410,7 @@ public class StageSelectScreen {
         
         // Description
         Label descLabel = new Label(description);
-        descLabel.setFont(Font.font("Arial", 16));
+    descLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, 16));
         descLabel.setTextFill(Color.web("#D4A574"));
         descLabel.setWrapText(true);
         descLabel.setTextAlignment(TextAlignment.CENTER);
@@ -422,21 +422,21 @@ public class StageSelectScreen {
         
         VBox targetBox = new VBox(5);
         targetBox.setAlignment(Pos.CENTER);
-        Label targetLabel = new Label("Target Score");
-        targetLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
+    Label targetLabel = new Label("Target Score");
+    targetLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.NORMAL, 14));
         targetLabel.setTextFill(Color.web("#A0866F"));
-        Label targetValue = new Label(String.valueOf(targetScore));
-        targetValue.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+    Label targetValue = new Label(String.valueOf(targetScore));
+    targetValue.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 24));
         targetValue.setTextFill(Color.web("#FFD700"));
         targetBox.getChildren().addAll(targetLabel, targetValue);
         
         VBox bestBox = new VBox(5);
         bestBox.setAlignment(Pos.CENTER);
-        Label bestLabel = new Label("Best Score");
-        bestLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
+    Label bestLabel = new Label("Best Score");
+    bestLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.NORMAL, 14));
         bestLabel.setTextFill(Color.web("#A0866F"));
-        Label bestValue = new Label(bestScore > 0 ? String.valueOf(bestScore) : "---");
-        bestValue.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+    Label bestValue = new Label(bestScore > 0 ? String.valueOf(bestScore) : "---");
+    bestValue.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 24));
         bestValue.setTextFill(Color.web("#E8A36B"));
         bestBox.getChildren().addAll(bestLabel, bestValue);
         
@@ -446,7 +446,7 @@ public class StageSelectScreen {
         Button playButton = new Button(status == StageStatus.LOCKED ? "LOCKED" : "PLAY");
         playButton.setMinWidth(250);
         playButton.setMinHeight(50);
-        playButton.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+    playButton.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 20));
         playButton.setDisable(status == StageStatus.LOCKED);
         
         if (status == StageStatus.LOCKED) {
@@ -527,7 +527,7 @@ public class StageSelectScreen {
         Button button = new Button("BACK TO MENU");
         button.setMinWidth(200);
         button.setMinHeight(50);
-        button.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+    button.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 18));
         button.setStyle(
             "-fx-background-radius: 15; " +
             "-fx-background-color: linear-gradient(#2d0b0b, #220606); " +

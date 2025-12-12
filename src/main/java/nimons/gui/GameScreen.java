@@ -761,7 +761,7 @@ public class GameScreen {
                                 "Kosong";
             
             gc.setFill(Color.web("#F2C38F")); 
-            gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 18));
+            gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 18));
             gc.fillText("Hand: " + handContent, fixedLogX, hudYStart);
         }
         
@@ -770,7 +770,7 @@ public class GameScreen {
         // Y awal untuk log (20px di bawah status tangan)
         double logYStart = hudYStart + 20; 
         
-        gc.setFont(Font.font("Arial", 16));
+    gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, 16));
         
         // Log terbaru ada di index 0 (ingin log terbaru di BARIS PALING BAWAH)
         for (int i = 0; i < onScreenLogs.size(); i++) {
@@ -1416,7 +1416,7 @@ public class GameScreen {
                         gc.setFill(Color.WHITE);
                         gc.setStroke(Color.BLACK);
                         gc.setLineWidth(2);
-                        gc.setFont(javafx.scene.text.Font.font("Arial", javafx.scene.text.FontWeight.BOLD, tileSize * 0.3));
+                        gc.setFont(javafx.scene.text.Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, tileSize * 0.3));
                         String countText = String.valueOf(plateCount);
                         double textX = screenX + tileSize * 0.7;
                         double textY = screenY + tileSize * 0.35;
@@ -1465,7 +1465,7 @@ public class GameScreen {
                         gc.setFill(Color.WHITE);
                         gc.setStroke(Color.BLACK);
                         gc.setLineWidth(2);
-                        gc.setFont(javafx.scene.text.Font.font("Arial", javafx.scene.text.FontWeight.BOLD, tileSize * 0.3));
+                        gc.setFont(javafx.scene.text.Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, tileSize * 0.3));
                         String countText = String.valueOf(plateCount);
                         double textX = screenX + tileSize * 0.7;
                         double textY = screenY + tileSize * 0.35;
@@ -2347,12 +2347,12 @@ public class GameScreen {
         
         // Title
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 56));
+    gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 56));
         gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
         gc.fillText("PAUSED", WINDOW_WIDTH / 2, menuY + 70);
         
         // Instructions
-        gc.setFont(Font.font("Arial", 18));
+    gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, 18));
         gc.setFill(Color.web("#E8A36B"));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText("Press ESC or click RESUME to continue", WINDOW_WIDTH / 2, menuY + 130);
@@ -2411,7 +2411,7 @@ public class GameScreen {
         
         // Button text
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 18));
+    gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 18));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText(text, x + width / 2, y + height / 2 + 6);
     }
@@ -2438,13 +2438,13 @@ public class GameScreen {
         // Score label
         int currentScore = gameState.getScore().getCurrentScore();
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 16));
+    gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 16));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText("SCORE", scoreBoxX + scoreBoxWidth / 2, scoreBoxY + 25);
         
         // Score value
         gc.setFill(Color.web("#E8A36B"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 40));
+    gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 40));
         gc.fillText(String.valueOf(currentScore), scoreBoxX + scoreBoxWidth / 2, scoreBoxY + 75);
         
         // --- TIMER PANEL (Bottom Right) ---
@@ -2464,14 +2464,14 @@ public class GameScreen {
         
         // Timer label
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 14));
+    gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 14));
         gc.setTextAlign(TextAlignment.CENTER);
         gc.fillText("TIME", timerBoxX + timerBoxWidth / 2, timerBoxY + 20);
         
         // Timer value
         String timeText = gameState.getTimer().getFormattedRemainingTime();
         gc.setFill(Color.web("#E8A36B"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 36));
+    gc.setFont(Font.font(nimons.core.GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 36));
         gc.fillText(timeText, timerBoxX + timerBoxWidth / 2, timerBoxY + 65);
     }
     
