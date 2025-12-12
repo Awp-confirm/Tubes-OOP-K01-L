@@ -8,12 +8,30 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 
 /**
+ * SINGLETON PATTERN (Thread-Safe Implementation)
+ * 
+ * Singleton Pattern memastikan bahwa sebuah kelas hanya memiliki satu instance
+ * dan menyediakan global access point ke instance tersebut.
+ * 
+ * Implementation: Double-Checked Locking dengan Volatile
+ * - volatile: Memastikan visibility perubahan variable di semua thread
+ * - synchronized block: Mencegah multiple threads membuat instance bersamaan
+ * - Double-check: Performa optimization (hanya lock saat benar-benar perlu create instance)
+ * 
+ * Manfaat:
+ * 1. Single Instance: Hanya satu SoundManager di seluruh aplikasi
+ * 2. Global Access: Mudah diakses dari mana saja
+ * 3. Lazy Initialization: Instance dibuat hanya saat pertama kali dibutuhkan
+ * 4. Thread Safety: Aman digunakan dalam multi-threaded environment
+ * 5. Resource Management: Mengelola audio resources secara terpusat
+ * 
  * SoundManager untuk mengelola semua audio dalam game.
  * Menggunakan AudioClip untuk sound effects pendek dan MediaPlayer untuk musik latar.
  */
 public class SoundManager {
     
-    private static SoundManager instance;
+    // volatile memastikan perubahan instance visible ke semua thread
+    private static volatile SoundManager instance;
     
     // Sound effect clips (untuk SFX pendek yang bisa di-trigger cepat)
     private Map<String, AudioClip> soundEffects;
@@ -30,14 +48,29 @@ public class SoundManager {
     // Sound file paths (dalam JAR, relatif ke resources)
     private static final String SOUND_DIR = "/assets/sound/";
     
+    /**
+     * Private constructor untuk mencegah instantiasi langsung
+     */
     private SoundManager() {
         this.soundEffects = new HashMap<>();
         loadAllSounds();
     }
     
+    /**
+     * Thread-safe getInstance() menggunakan Double-Checked Locking
+     * 
+     * @return Instance tunggal dari SoundManager
+     */
     public static SoundManager getInstance() {
+        // First check (no locking) - untuk performa
         if (instance == null) {
-            instance = new SoundManager();
+            // Synchronized block - hanya dieksekusi jika instance masih null
+            synchronized (SoundManager.class) {
+                // Second check (with locking) - untuk thread safety
+                if (instance == null) {
+                    instance = new SoundManager();
+                }
+            }
         }
         return instance;
     }

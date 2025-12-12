@@ -78,14 +78,16 @@ public abstract class Station {
     /**
      * Helper method: Melakukan Plating Awal (Membungkus Item menjadi Dish).
      * MENGGUNAKAN ALIAS PLATE.GETFOOD()/SETFOOD().
+     * 
+     * @return true if plating successful, false otherwise
      */
-    protected void processPlating(Plate piring, Item itemToPlate) {
-        if (itemToPlate == null) return;
+    protected boolean processPlating(Plate piring, Item itemToPlate) {
+        if (itemToPlate == null) return false;
 
         // Cek Piring Penuh
         if (piring.getFood() != null) { 
             log("FAIL", "PLATING REJECTED: Plate is full.");
-            return;
+            return false;
         }
 
         Dish dishSiapSaji;
@@ -106,5 +108,6 @@ public abstract class Station {
         // Masukkan Dish ke Piring
         piring.setFood(dishSiapSaji); 
         log("SUCCESS", "PLATED: " + dishSiapSaji.getName() + " successfully placed on plate.");
+        return true;
     }
 }

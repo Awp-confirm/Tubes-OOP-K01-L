@@ -9,19 +9,16 @@ import nimons.entity.item.Item;
 import nimons.entity.item.Plate; 
 
 /**
- * WashingStation (W): Menangani pencucian piring kotor.
- * Mode: SINK (Input/Cuci) dan RACK (Output/Simpan Bersih).
+ * WashingStation (W): Menangani pencucian piring kotor di SINK.
+ * Clean plates akan dikirim ke Rack station.
  * Constraint: Menggunakan Busy State (Chef di-freeze selama durasi mencuci).
  */
 public class WashingStation extends Station {
     
-    public enum WashingMode { SINK, RACK }
     private static WashingStation activeWashingStation; // Track which washing station is active
-    private WashingMode mode; 
-    private WashingStation outputRackReference; 
+    private Rack outputRackReference; 
 
     private Stack<Plate> dirtyPlates; 
-    private Stack<Plate> cleanPlates; 
     
     private Plate plateInWash; 
     private float currentProgress = 0;
@@ -33,13 +30,11 @@ public class WashingStation extends Station {
     private float logTimer = 0; // Mengembalikan timer log untuk update progress bar 
 
 
-    public WashingStation(String name, Position position, WashingMode mode) {
+    public WashingStation(String name, Position position) {
         super(name, position);
-        this.mode = mode;
         this.dirtyPlates = new Stack<>();
-        this.cleanPlates = new Stack<>();
         
-        log("INIT", "Station mode: " + mode.toString());
+        log("INIT", "WashingStation initialized");
     }
     
     // --- Getters untuk Progress Bar (Progress 0.0 - 1.0) ---
@@ -60,18 +55,9 @@ public class WashingStation extends Station {
     }
     // -------------------------------------------------------
     
-    public WashingMode getMode() { return mode; }
-    public void setMode(WashingMode newMode) { 
-        this.mode = newMode;
-        log("INIT", "Mode changed to: " + newMode.toString());
-    }
-    public void setOutputRack(WashingStation rack) {
-        if (this.mode == WashingMode.SINK) {
-            this.outputRackReference = rack;
-            log("INIT", "Sink linked to Rack at " + rack.getPosition());
-        } else {
-            System.err.println("ERROR: Only SINK can be linked to Output Rack.");
-        }
+    public void setOutputRack(Rack rack) {
+        this.outputRackReference = rack;
+        log("INIT", "Sink linked to Rack at " + rack.getPosition());
     }
     
     /**
@@ -80,8 +66,6 @@ public class WashingStation extends Station {
      */
     @Override
     public void update(long deltaTime) {
-        if (mode != WashingMode.SINK) return;
-        
         // Timer hanya berjalan jika ini adalah active station DAN Chef sedang mencuci DAN busy
         if (this == activeWashingStation && currentWasher != null && currentWasher.isBusy() && plateInWash != null) {
             currentProgress += deltaTime;
@@ -109,20 +93,6 @@ public class WashingStation extends Station {
     public void onInteract(Chef chef) {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
-        
-        if (mode == WashingMode.RACK) {
-            // LOGIKA RACK (Output): Mengambil piring bersih
-            if (itemHand == null && !cleanPlates.isEmpty()) { 
-                Plate p = cleanPlates.pop();
-                chef.setInventory(p);
-                log("ACTION", "TAKEN: Clean Plate from RACK (Remaining: " + cleanPlates.size() + ").");
-            } else {
-                log("INFO", "Rack is empty or Chef's hands are full.");
-            }
-            return;
-        }
-
-        // --- LOGIKA SINK ---
 
         // SCENARIO 4: PAUSE CUCI (Chef dapat bergerak, progress tetap)
         if (chef.isBusy() && chef == currentWasher) {
@@ -191,7 +161,7 @@ public class WashingStation extends Station {
             plateInWash.setClean(true); 
             
             if (outputRackReference != null) {
-                outputRackReference.addCleanPlateToRack(plateInWash); 
+                outputRackReference.addCleanPlate(plateInWash); 
                 log("SUCCESS", "CLEANED: Plate is clean and sent to RACK.");
             } else {
                 log("ERROR", "CLEAN PLATE LOST: Output Rack is missing.");
@@ -225,14 +195,4 @@ public class WashingStation extends Station {
         log("INFO", "WASHING RESET: Progress cleared due to station switch.");
     }
     
-    /**
-     * Method internal untuk menerima Plate Bersih (Hanya di RACK).
-     */
-    public void addCleanPlateToRack(Plate p) {
-        if (mode == WashingMode.RACK && p.isClean()) {
-            cleanPlates.push(p);
-        } else {
-            System.err.println("ERROR: Attempted to store wrong item type in Washing RACK.");
-        }
-    }
 }

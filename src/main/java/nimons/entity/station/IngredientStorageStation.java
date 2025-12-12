@@ -88,8 +88,23 @@ public class IngredientStorageStation extends Station {
             Item bahanBaru = spawnItem();
             
             if (bahanBaru != null && bahanBaru instanceof Preparable) {
-                processPlating(p, bahanBaru);
-                log("ACTION", "ADDED: " + bahanBaru.getName() + " to plate on table.");
+                if (processPlating(p, bahanBaru)) {
+                    log("ACTION", "ADDED: " + bahanBaru.getName() + " to plate on table.");
+                } else {
+                    log("FAIL", "Cannot add " + bahanBaru.getName() + " to plate.");
+                }
+            }
+            return;
+        }
+        
+        // SCENARIO 3b: Add ingredient in hand to plate on table
+        if (itemHand instanceof Preparable && itemTable instanceof Plate) {
+            Plate p = (Plate) itemTable;
+            if (processPlating(p, itemHand)) {
+                chef.setInventory(null);
+                log("ACTION", "ASSEMBLY: " + itemHand.getName() + " added to plate on table.");
+            } else {
+                log("FAIL", "Cannot add " + itemHand.getName() + " to plate.");
             }
             return;
         }

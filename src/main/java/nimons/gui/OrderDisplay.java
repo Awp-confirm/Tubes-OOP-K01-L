@@ -22,8 +22,8 @@ public class OrderDisplay {
     
     // Internal card layout
     private static final double TIMER_BAR_HEIGHT = 12;
-    private static final double DISH_ICON_SIZE = 50;
-    private static final double INGREDIENT_ICON_SIZE = 28;
+    private static final double DISH_ICON_SIZE = 70;
+    private static final double INGREDIENT_ICON_SIZE = 32;
     
     public static void renderOrders(GraphicsContext gc, List<Order> orders, double windowWidth, double startY, Map<String, Image> itemImages) {
         if (orders == null || orders.isEmpty()) {
@@ -69,7 +69,7 @@ public class OrderDisplay {
         // Dish icon/placeholder (centered)
         double dishIconX = x + (CARD_WIDTH - DISH_ICON_SIZE) / 2;
         double dishIconY = y + TIMER_BAR_HEIGHT + 20;
-        renderDishIcon(gc, order, dishIconX, dishIconY);
+        renderDishIcon(gc, order, dishIconX, dishIconY, itemImages);
         
         // Ingredients displayed horizontally (centered below dish)
         double ingredientsY = dishIconY + DISH_ICON_SIZE + 35;
@@ -118,23 +118,47 @@ public class OrderDisplay {
     }
     
 
-    private static void renderDishIcon(GraphicsContext gc, Order order, double x, double y) {
-        // Dish background circle (placeholder)
-        gc.setFill(Color.web("#3a0f0f"));
-        gc.fillOval(x, y, DISH_ICON_SIZE, DISH_ICON_SIZE);
+    private static void renderDishIcon(GraphicsContext gc, Order order, double x, double y, Map<String, Image> itemImages) {
+        // Try to get dish image first
+        Image dishImage = null;
+        String recipeName = "";
         
-        // Border
-        gc.setStroke(Color.web("#E8A36B"));
-        gc.setLineWidth(2);
-        gc.strokeOval(x, y, DISH_ICON_SIZE, DISH_ICON_SIZE);
+        if (order.getRecipe() != null) {
+            recipeName = order.getRecipe().getName();
+            String recipeNameLower = recipeName.toLowerCase();
+            
+            // Map recipe names to image keys
+            if (recipeNameLower.contains("ebi maki")) {
+                dishImage = itemImages.get("ebi_maki");
+            } else if (recipeNameLower.contains("kappa maki")) {
+                dishImage = itemImages.get("kappa_maki");
+            } else if (recipeNameLower.contains("sakana maki")) {
+                dishImage = itemImages.get("sakana_maki");
+            } else if (recipeNameLower.contains("fish cucumber roll")) {
+                dishImage = itemImages.get("fish_cucumber_roll");
+            }
+        }
         
-        // Plate icon (inner circle)
-        gc.setFill(Color.web("#D4A574"));
-        gc.fillOval(x + 8, y + 8, DISH_ICON_SIZE - 16, DISH_ICON_SIZE - 16);
+        // If we have a dish image, render it
+        if (dishImage != null) {
+            gc.drawImage(dishImage, x, y, DISH_ICON_SIZE, DISH_ICON_SIZE);
+        } else {
+            // Fallback: Dish background circle (placeholder)
+            gc.setFill(Color.web("#3a0f0f"));
+            gc.fillOval(x, y, DISH_ICON_SIZE, DISH_ICON_SIZE);
+            
+            // Border
+            gc.setStroke(Color.web("#E8A36B"));
+            gc.setLineWidth(2);
+            gc.strokeOval(x, y, DISH_ICON_SIZE, DISH_ICON_SIZE);
+            
+            // Plate icon (inner circle)
+            gc.setFill(Color.web("#D4A574"));
+            gc.fillOval(x + 8, y + 8, DISH_ICON_SIZE - 16, DISH_ICON_SIZE - 16);
+        }
         
         // Recipe name with larger font and centered
-        if (order.getRecipe() != null) {
-            String recipeName = order.getRecipe().getName();
+        if (!recipeName.isEmpty()) {
             gc.setFill(Color.web("#F2C38F"));
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 12));
             gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);

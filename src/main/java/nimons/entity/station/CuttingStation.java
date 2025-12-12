@@ -168,8 +168,25 @@ public class CuttingStation extends Station {
             processPlating((Plate) itemHand, placedItem);
             if (((Plate)itemHand).getFood() != null) placedItem = null; 
             return;
+        }        
+        // SCENARIO 3b: ASSEMBLY (Hand Ingredient → Table Plate)
+        if (itemHand instanceof Preparable && placedItem instanceof Plate) {
+            Plate plateTable = (Plate) placedItem;
+            
+            // Blokir jika Chef sedang memotong
+            if (currentCutter != null) { 
+                log("INFO", "BLOCKED: Chef is busy chopping.");
+                return; 
+            }
+            
+            if (processPlating(plateTable, itemHand)) {
+                chef.setInventory(null);
+                log("SUCCESS", "ASSEMBLY: " + itemHand.getName() + " added to plate on table.");
+            } else {
+                log("FAIL", "Cannot add " + itemHand.getName() + " to plate.");
+            }
+            return;
         }
-
         // SCENARIO 2: TARUH ITEM (Drop Hand $\rightarrow$ Table)
         if (itemHand != null && placedItem == null) {
             if (currentCutter != null) finishCutting(); 

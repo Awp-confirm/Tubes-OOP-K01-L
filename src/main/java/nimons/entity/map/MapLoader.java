@@ -6,20 +6,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap; // Tambahkan import HashMap
 
 import nimons.entity.common.Position;
-import nimons.entity.station.AssemblyStation;
+import nimons.entity.station.AssemblyStation; // Tambahkan import HashMap
 import nimons.entity.station.CookingStation;
 import nimons.entity.station.CuttingStation;
 import nimons.entity.station.IngredientStorageStation;
 import nimons.entity.station.PlateStorageStation;
+import nimons.entity.station.Rack;
 import nimons.entity.station.ServingStation;
 import nimons.entity.station.Station;
 import nimons.entity.station.TrashStation;
 import nimons.entity.station.WashingStation;
-import nimons.entity.station.WashingStation.WashingMode; // Tambahkan import WashingMode
 
 public class MapLoader {
 
@@ -60,6 +58,7 @@ public class MapLoader {
         // --- REVISI 1: List sementara untuk menyimpan semua Station ---
         // Kita perlu menyimpan referensi semua Station untuk koneksi di akhir.
         List<WashingStation> washingStations = new ArrayList<>();
+        List<Rack> racks = new ArrayList<>();
         
         // Kita juga perlu menyimpan ServingStation untuk koneksi Singleton (untuk amannya, meski sudah diatasi)
         // ServingStation servingStation = null; 
@@ -101,12 +100,16 @@ public class MapLoader {
                     case 'S':
                         station = new ServingStation("Serving Counter", pos);
                         break;
-                    // --- REVISI 2: Instansiasi W - Default Mode SINK ---
+                    // --- REVISI 2: Instansiasi W dan K ---
                     case 'W':
-                        // Semua W dibuat sebagai SINK, mode akan diubah di PASS 2
-                        WashingStation ws = new WashingStation("Washing Station", pos, WashingMode.SINK);
-                        washingStations.add(ws); // Simpan sementara
+                        WashingStation ws = new WashingStation("Washing Station", pos);
+                        washingStations.add(ws);
                         station = ws;
+                        break;
+                    case 'K':
+                        Rack rack = new Rack("Rack", pos);
+                        racks.add(rack);
+                        station = rack;
                         break;
                     case 'I':
                         station = new IngredientStorageStation("Ingredient Storage", pos);
@@ -129,27 +132,19 @@ public class MapLoader {
             }
         }
 
-        // PASS 2: Menganalisis dan Menghubungkan Station (Washing Station)
+        // PASS 2: Menganalisis dan Menghubungkan Station (Washing Station ke Rack)
         
-        // --- REVISI 3: Menghubungkan W SINK dan W RACK ---
-        if (washingStations.size() >= 2) {
-            // Asumsi: Kita pasangkan W yang berdekatan.
-            // Peta Anda menunjukkan dua W yang berdampingan (misal, W[0] dan W[1])
-            
+        // --- REVISI 3: Menghubungkan WashingStation ke Rack ---
+        // Asumsi sederhana: jika ada 1 WashingStation dan 1 Rack, kita hubungkan
+        if (!washingStations.isEmpty() && !racks.isEmpty()) {
+            // Untuk map dengan beberapa washing station, pair berdasarkan kedekatan
+            // Saat ini: hubungkan washing station pertama dengan rack pertama
             WashingStation sink = washingStations.get(0);
-            WashingStation rack = washingStations.get(1);
+            Rack outputRack = racks.get(0);
             
-            // Atur mode RACK pada W kedua (yang berfungsi sebagai output)
-            rack.setMode(WashingStation.WashingMode.RACK);
+            sink.setOutputRack(outputRack);
             
-            // Lakukan koneksi dari SINK ke RACK
-            sink.setOutputRack(rack); 
-            
-            // Catatan: Jika ada lebih dari 2 W (misal 4 W), logika ini harus diperluas
-            // untuk mendeteksi semua pasangan W yang berdekatan.
-            
-            // Untuk amannya, pastikan semua W lain yang tidak terpakai dikembalikan ke mode default (jika ada)
-            // Namun, untuk saat ini, kita hanya koneksikan 2 yang pertama.
+            System.out.println("MapLoader: WashingStation linked to Rack at " + outputRack.getPosition());
         }
         // ----------------------------------------------------
 
