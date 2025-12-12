@@ -57,6 +57,11 @@ public final class GameConfig {
     
     /** Smooth movement interpolation speed */
     public static final double MOVE_SPEED = 0.3;
+
+    // ==================== UI / THEME ====================
+
+    /** Default application font family (name expected after loading custom font) */
+    public static final String DEFAULT_FONT_FAMILY = "Pixelify Sans";
     
     // ==================== CHEF MOVEMENT ====================
     

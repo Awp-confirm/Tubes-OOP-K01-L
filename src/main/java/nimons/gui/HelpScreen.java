@@ -19,6 +19,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import nimons.core.GameConfig;
 
 /**
  * Help screen displaying game controls and tutorial
@@ -40,7 +41,7 @@ public class HelpScreen {
         
         // Title
         Label title = new Label("GAME CONTROLS & TUTORIAL");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+    title.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 36));
         title.setTextFill(Color.web("#F2C38F"));
         title.setAlignment(Pos.CENTER);
         title.setPadding(new Insets(30, 20, 20, 20));
@@ -113,7 +114,7 @@ public class HelpScreen {
         
         // Section title
         Label titleLabel = new Label(sectionTitle);
-        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+    titleLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 24));
         titleLabel.setTextFill(Color.web("#E8A36B"));
         titleLabel.setPadding(new Insets(0, 0, 10, 0));
         
@@ -126,7 +127,7 @@ public class HelpScreen {
             
             // Key label
             Label keyLabel = new Label(control[0]);
-            keyLabel.setFont(Font.font("Courier New", FontWeight.BOLD, 16));
+            keyLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 16));
             keyLabel.setTextFill(Color.web("#FFFFFF"));
             keyLabel.setMinWidth(120);
             keyLabel.setAlignment(Pos.CENTER);
@@ -136,7 +137,7 @@ public class HelpScreen {
             
             // Description label
             Label descLabel = new Label(control[1]);
-            descLabel.setFont(Font.font("Arial", 16));
+            descLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, 16));
             descLabel.setTextFill(Color.web("#D4A574"));
             
             controlRow.getChildren().addAll(keyLabel, descLabel);
@@ -156,7 +157,7 @@ public class HelpScreen {
         
         // Section title
         Label titleLabel = new Label(sectionTitle);
-        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+    titleLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 24));
         titleLabel.setTextFill(Color.web("#E8A36B"));
         titleLabel.setPadding(new Insets(0, 0, 10, 0));
         
@@ -165,7 +166,7 @@ public class HelpScreen {
         // Items
         for (String item : items) {
             Label itemLabel = new Label(item);
-            itemLabel.setFont(Font.font("Arial", 14));
+            itemLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, 14));
             itemLabel.setTextFill(Color.web("#D4A574"));
             itemLabel.setWrapText(true);
             itemLabel.setMaxWidth(800);
@@ -177,10 +178,10 @@ public class HelpScreen {
     }
     
     private Button createBackButton() {
-        Button button = new Button("BACK TO MENU");
+    Button button = new Button("BACK TO MENU");
         button.setMinWidth(200);
         button.setMinHeight(50);
-        button.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+    button.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 18));
         button.setStyle(
             "-fx-background-radius: 15; " +
             "-fx-background-color: linear-gradient(#2d0b0b, #220606); " +

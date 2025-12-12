@@ -8,6 +8,7 @@ import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import nimons.core.GameConfig;
 import nimons.entity.item.IngredientState;
 import nimons.entity.order.IngredientRequirement;
 import nimons.entity.order.Order;
@@ -160,8 +161,7 @@ public class OrderDisplay {
         // Recipe name with larger font and centered
         if (!recipeName.isEmpty()) {
             gc.setFill(Color.web("#F2C38F"));
-            gc.setFont(Font.font("Arial", FontWeight.BOLD, 12));
-            gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+                gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 12));
             
             // Center text below icon (use center of icon as reference)
             double centerX = x + (DISH_ICON_SIZE / 2);
@@ -219,8 +219,7 @@ public class OrderDisplay {
                 // Draw initial
                 String initial = ingredientName.substring(0, 1).toUpperCase();
                 gc.setFill(Color.WHITE);
-                gc.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-                gc.fillText(initial, currentX + 8, y + 19);
+                    gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 14));
             }
             
             // Border around ingredient
@@ -231,8 +230,7 @@ public class OrderDisplay {
             // Draw ingredient name below icon
             String displayName = capitalizeFirst(ingredientName);
             gc.setFill(Color.web("#E8A36B"));
-            gc.setFont(Font.font("Arial", FontWeight.NORMAL, 8));
-            gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+                gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.NORMAL, 8));
             double textX = currentX + (INGREDIENT_ICON_SIZE / 2);
             double textY = y + INGREDIENT_ICON_SIZE + 10;
             gc.fillText(displayName, textX, textY);
@@ -244,8 +242,7 @@ public class OrderDisplay {
         // Show "+N" if there are more ingredients
         if (requirements.size() > displayCount) {
             gc.setFill(Color.web("#E8A36B"));
-            gc.setFont(Font.font("Arial", FontWeight.BOLD, 10));
-            gc.fillText("+" + (requirements.size() - displayCount), currentX, y + 19);
+                gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 10));
         }
     }
     

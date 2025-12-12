@@ -6,6 +6,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import nimons.core.GameConfig;
 import javafx.stage.Stage;
 import nimons.core.SoundManager;
 import nimons.logic.GameState.FailReason;
@@ -95,28 +96,28 @@ public class ResultScreen {
         // Result title (PASS or FAIL)
         double titleY = boxY + 120;
         gc.setFill(isPassed ? Color.web("#2ecc71") : Color.web("#e74c3c"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 80));
+    gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 80));
         drawCenteredText(gc, resultMessage, boxX + (boxWidth - 100) / 2 - 20, titleY + 30);
         // Score display section with better spacing
         double scoreStartY = titleY + 100;
         
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 28));
+    gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 28));
         drawCenteredText(gc, "Final Score", boxX + boxWidth / 2 - 40, scoreStartY);
         
-        gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 60));
+    gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 60));
         gc.setFill(Color.web("#E8A36B"));
         drawCenteredText(gc, String.valueOf(finalScore), boxX + boxWidth / 2 - 10, scoreStartY + 70);
         
         // Pass threshold info with better formatting
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", 20));
+    gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, 20));
         drawCenteredText(gc, "Required: " + passThreshold, boxX + boxWidth / 2 - 20, scoreStartY + 110);
         
         // Fail description (if failed) - slightly shifted left
         if (!isPassed && failDescription != null) {
             gc.setFill(Color.web("#e74c3c"));
-            gc.setFont(Font.font("Arial", javafx.scene.text.FontWeight.BOLD, 18));
+            gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, javafx.scene.text.FontWeight.BOLD, 18));
             drawCenteredText(gc, failDescription, boxX + boxWidth / 2 - 60, scoreStartY + 150);
         }
         
@@ -157,7 +158,7 @@ public class ResultScreen {
         
         // Button text
         gc.setFill(Color.web("#F2C38F"));
-        gc.setFont(Font.font("Arial", 18));
+    gc.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, 18));
         drawCenteredText(gc, text, x + width / 2 - 20, y + height / 2 + 6);
     }
     

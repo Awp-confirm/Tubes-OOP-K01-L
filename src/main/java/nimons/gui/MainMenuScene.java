@@ -20,6 +20,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Polygon;
 import javafx.scene.text.Font;
+import nimons.core.GameConfig;
 import javafx.stage.Stage;
 
 public class MainMenuScene {
@@ -123,7 +124,7 @@ public class MainMenuScene {
         Button b = new Button(label);
         b.setMinWidth(160);
         b.setMinHeight(48);
-        b.setFont(Font.font(18));
+    b.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, 18));
         b.setStyle(
                 "-fx-background-radius: 18; " +
                         "-fx-background-color: linear-gradient(#2d0b0b, #220606); " +

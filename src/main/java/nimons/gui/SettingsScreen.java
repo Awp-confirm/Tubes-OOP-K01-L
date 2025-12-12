@@ -17,6 +17,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import nimons.core.GameSettings;
+import nimons.core.GameConfig;
 import nimons.core.GameSettings.Difficulty;
 
 /**
@@ -39,20 +40,20 @@ public class SettingsScreen {
         
         // Title
         Label title = new Label("SETTINGS");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 48));
+    title.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 48));
         title.setTextFill(Color.web("#F2C38F"));
         title.setAlignment(Pos.CENTER);
         title.setPadding(new Insets(50, 20, 30, 20));
         
         // Difficulty section
         Label difficultyLabel = new Label("DIFFICULTY");
-        difficultyLabel.setFont(Font.font("Arial", FontWeight.BOLD, 28));
+    difficultyLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 28));
         difficultyLabel.setTextFill(Color.web("#E8A36B"));
         
         // Current difficulty display
         GameSettings settings = GameSettings.getInstance();
         Label currentDifficulty = new Label("Current: " + settings.getDifficulty().getDisplayName());
-        currentDifficulty.setFont(Font.font("Arial", FontWeight.NORMAL, 20));
+    currentDifficulty.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.NORMAL, 20));
         currentDifficulty.setTextFill(Color.web("#D4A574"));
         
         // Difficulty buttons
@@ -94,7 +95,7 @@ public class SettingsScreen {
         Button button = new Button(difficulty.getDisplayName() + " - " + livesText);
         button.setMinWidth(400);
         button.setMinHeight(60);
-        button.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+    button.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 20));
         
         // Highlight if selected
         updateButtonStyle(button, settings.getDifficulty() == difficulty);
@@ -155,7 +156,7 @@ public class SettingsScreen {
         Button button = new Button("BACK TO MENU");
         button.setMinWidth(200);
         button.setMinHeight(50);
-        button.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+    button.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 18));
         button.setStyle(
             "-fx-background-radius: 15; " +
             "-fx-background-color: linear-gradient(#2d0b0b, #220606); " +
