@@ -15,7 +15,7 @@ public abstract class KitchenUtensil extends Item {
         this.contents = contents;
     }
 
-    // getters & setters
+    
     public Set<Preparable> getContents() { 
         return contents; 
     }
@@ -24,11 +24,8 @@ public abstract class KitchenUtensil extends Item {
         this.contents = contents; 
     }
     
-    /**
-     * Get capacity of this utensil
-     * Should be overridden by subclasses that have capacity limits
-     */
+    
     public int getCapacity() {
-        return Integer.MAX_VALUE; // Default: unlimited capacity
+        return Integer.MAX_VALUE; 
     }
 }

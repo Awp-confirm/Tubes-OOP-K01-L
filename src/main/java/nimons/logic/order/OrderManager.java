@@ -22,7 +22,7 @@ public class OrderManager {
     private final Random random = new Random();
     private static final int MAX_ACTIVE_ORDERS = 3;
     private long lastOrderTime = 0;
-    private static final long ORDER_SPAWN_INTERVAL = 20000; // 20 detik spawn order baru
+    private static final long ORDER_SPAWN_INTERVAL = 20000; 
     
     private OrderManager() {
         this.activeOrders = new ArrayList<>();
@@ -36,17 +36,14 @@ public class OrderManager {
         return instance;
     }
     
-    /**
-     * Set available recipes untuk level ini
-     */
+    
     public void setAvailableRecipes(List<Recipe> recipes) {
         this.availableRecipes.clear();
         this.availableRecipes.addAll(recipes);
     }
     
-    /**
-     * Update order timer dan cek timeout
-     */
+    
+        
     public void update(long deltaTimeMs) {
         final GameState gameState = getGameState();
         final double deltaSeconds = deltaTimeMs / 1000.0;
@@ -60,7 +57,7 @@ public class OrderManager {
                 
                 if (newRemaining <= 0) {
                     order.setStatus(OrderStatus.FAILED);
-                    // Play wrong sound when order timeout
+                    
                     nimons.core.SoundManager.getInstance().playSoundEffect("wrong");
                     if (gameState != null) {
                         gameState.loseLife();
@@ -78,9 +75,8 @@ public class OrderManager {
         return gameScreen != null ? gameScreen.getGameState() : null;
     }
     
-    /**
-     * Check dan spawn order baru jika interval cukup dan belum max
-     */
+    
+        
     public void trySpawnNewOrder(long currentTimeMs) {
         if (activeOrders.size() < MAX_ACTIVE_ORDERS && 
             (currentTimeMs - lastOrderTime) >= ORDER_SPAWN_INTERVAL) {
@@ -89,16 +85,15 @@ public class OrderManager {
         }
     }
     
-    /**
-     * Spawn random order dari available recipes
-     */
+    
+        
     private void spawnRandomOrder() {
         if (availableRecipes.isEmpty()) {
             return;
         }
         
         Recipe randomRecipe = availableRecipes.get(random.nextInt(availableRecipes.size()));
-        int reward = 100 + random.nextInt(100); // 100-200 reward
+        int reward = 100 + random.nextInt(100); 
         int penalty = -50;
         int timeLimit = GameConfig.ORDER_DURATION_SECONDS;
         
@@ -115,18 +110,20 @@ public class OrderManager {
         activeOrders.add(newOrder);
     }
 
+        
     public void addOrder(Order order) {
         order.setIndex(nextOrderIndex++);
         order.setStatus(OrderStatus.ACTIVE);
         activeOrders.add(order);
     }
 
+        
     public boolean validateOrder(Dish dish) {
         if (dish == null) {
             return false;
         }
         
-        // Check if any active order matches this dish
+        
         for (Order order : activeOrders) {
             if (order.getRecipe() != null && 
                 order.getRecipe().getName().equalsIgnoreCase(dish.getName())) {
@@ -134,19 +131,18 @@ public class OrderManager {
             }
         }
         
-        // If no specific order found, check if dish is valid (not empty)
+        
         return dish.getComponents() != null && !dish.getComponents().isEmpty();
     }
 
-    /**
-     * Complete order - cari order terlebih awal dengan recipe yang sama
-     */
+    
+        
     public Order completeOrder(Dish dish) {
         if (dish == null || dish.getName() == null) {
             return null;
         }
         
-        // Find earliest order (lowest index) yang recipe-nya match
+        
         Order earliestMatch = null;
         for (Order order : activeOrders) {
             if (order.getStatus() == OrderStatus.ACTIVE &&
@@ -162,7 +158,7 @@ public class OrderManager {
             earliestMatch.setStatus(OrderStatus.COMPLETED);
             activeOrders.remove(earliestMatch);
             
-            // Play correct sound effect when order completed successfully
+            
             SoundManager.getInstance().playSoundEffect("correct");
         }
         
@@ -177,6 +173,7 @@ public class OrderManager {
         return activeOrders.size();
     }
     
+        
     public void reset() {
         activeOrders.clear();
         nextOrderIndex = 1;

@@ -1,8 +1,5 @@
 package nimons.exceptions;
 
-/**
- * Exception thrown when an invalid operation is attempted.
- */
 public class InvalidOperationException extends GameException {
     
     private String operation;

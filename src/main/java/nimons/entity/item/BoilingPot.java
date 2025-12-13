@@ -22,8 +22,9 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
         this.capacity = capacity;
     }
 
-    // getters & setters
+    
     @Override
+        
     public int capacity() { 
         return capacity; 
     }
@@ -37,21 +38,23 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
         this.capacity = capacity; 
     }
 
-    // interface methods
+    
     @Override 
+        
     public boolean isPortable() { 
         return super.isPortable(); 
     }
 
     @Override 
+        
     public boolean canAccept(Preparable ingredient) { 
-        // Boiling pot hanya bisa menerima Rice atau Pasta
+        
         Set<Preparable> contents = getContents();
         if (contents == null || ingredient == null) {
             return false;
         }
         
-        // Cek apakah ingredient adalah Rice atau Pasta
+        
         if (ingredient instanceof nimons.entity.item.Ingredient) {
             nimons.entity.item.Ingredient ing = (nimons.entity.item.Ingredient) ingredient;
             String ingredientType = ing.getId();
@@ -63,6 +66,7 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
     }
 
     @Override 
+        
     public void addIngredient(Preparable ingredient) throws StationFullException, InvalidIngredientStateException {
         if (getContents() == null || ingredient == null) {
             throw new InvalidIngredientStateException("Ingredient", "null", "valid");
@@ -88,8 +92,9 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
     }
 
     @Override 
+        
     public void startCooking() {
-        // Masak semua ingredient dalam pot
+        
         if (getContents() != null) {
             for (Preparable ingredient : getContents()) {
                 if (ingredient.canBeCooked()) {
@@ -100,11 +105,13 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
     }
 
     @Override
+        
     public void update(long deltaTime) {
 
     }
     
     @Override
+        
     public void reset() {
         if (getContents() != null) {
             getContents().clear();

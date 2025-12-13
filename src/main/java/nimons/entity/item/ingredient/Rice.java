@@ -10,31 +10,36 @@ public class Rice extends Ingredient {
     }
 
     @Override
+        
     public boolean canBeChopped() {
-        return false; // Rice tidak perlu dipotong
+        return false; 
     }
 
     @Override
+        
     public boolean canBeCooked() {
         return getState() == IngredientState.RAW;
     }
 
     @Override
+        
     public boolean canBePlacedOnPlate() {
         return getState() == IngredientState.COOKED;
     }
 
     @Override
+        
     public void chop() {
-        // Rice tidak bisa dipotong
+        
     }
 
     @Override
-        public void cook() {
+            
+    public void cook() {
             if (getState() == IngredientState.RAW) {
-                // --- REVISI: HANYA SET STATE KE COOKING DAN RESET TIMER ---
+                
                 setState(IngredientState.COOKING);
-                // currentCookTime akan direset oleh updateCooking() saat transisi state
+                
             } 
         }
 }

@@ -14,7 +14,7 @@ public abstract class Item {
         this.portable = portable;
     }
 
-    // getter & setter
+    
     public String getId() { 
         return id; 
     }
@@ -31,6 +31,7 @@ public abstract class Item {
         this.name = name; 
     }
 
+        
     public boolean isPortable() { 
         return portable; 
     }

@@ -4,10 +4,6 @@ import java.util.concurrent.Callable;
 
 import nimons.entity.order.Order;
 
-/**
- * Processes order validation asynchronously.
- * Demonstrates Callable interface and returning results from threads.
- */
 public class AsyncOrderProcessor implements Callable<OrderProcessingResult> {
     
     private final Order order;
@@ -19,15 +15,16 @@ public class AsyncOrderProcessor implements Callable<OrderProcessingResult> {
     }
     
     @Override
+        
     public OrderProcessingResult call() throws Exception {
         String threadName = Thread.currentThread().getName();
         System.out.println("[" + threadName + "] Processing order: " + order.getRecipe().getName());
         
         try {
-            // Simulate processing time
+            
             Thread.sleep(processingTimeMs);
             
-            // Check if order expired during processing
+            
             if (order.getRemainingTimeSeconds() <= 0) {
                 return new OrderProcessingResult(order, false, "Order expired during processing");
             }

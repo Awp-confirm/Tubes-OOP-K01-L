@@ -3,9 +3,6 @@ package nimons.logic;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Tracks player progress across stages
- */
 public class StageProgress {
     
     private static StageProgress instance;
@@ -24,8 +21,8 @@ public class StageProgress {
         this.stageStatuses = new HashMap<>();
         this.stageBestScores = new HashMap<>();
         
-        // Initialize default stages
-        stageStatuses.put("stageSushi", StageStatus.AVAILABLE); // First stage always available
+        
+        stageStatuses.put("stageSushi", StageStatus.AVAILABLE); 
     }
     
     public static StageProgress getInstance() {
@@ -39,11 +36,12 @@ public class StageProgress {
         return stageStatuses.getOrDefault(stageId, StageStatus.LOCKED);
     }
     
+        
     public void completeStage(String stageId, int score, boolean passed) {
-        // Set status based on whether player passed or failed
+        
         stageStatuses.put(stageId, passed ? StageStatus.SUCCESS : StageStatus.FAILED);
         
-        // Update best score
+        
         int currentBest = stageBestScores.getOrDefault(stageId, 0);
         if (score > currentBest) {
             stageBestScores.put(stageId, score);
@@ -54,12 +52,14 @@ public class StageProgress {
         return stageBestScores.getOrDefault(stageId, 0);
     }
     
+        
     public void unlockStage(String stageId) {
         if (!stageStatuses.containsKey(stageId)) {
             stageStatuses.put(stageId, StageStatus.AVAILABLE);
         }
     }
     
+        
     public void reset() {
         stageStatuses.clear();
         stageBestScores.clear();

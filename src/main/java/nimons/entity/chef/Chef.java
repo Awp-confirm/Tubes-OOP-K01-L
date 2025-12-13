@@ -14,7 +14,7 @@ public class Chef {
     private ChefAction currentAction;
     private boolean busy;
     
-    // Dash attributes
+    
     private boolean isDashing;
     private long lastDashTime;
     
@@ -34,7 +34,7 @@ public class Chef {
         this.lastDashTime = 0;
     }
 
-    // getters & setters
+    
     public String getId() { 
         return id; 
     }
@@ -83,6 +83,7 @@ public class Chef {
         this.currentAction = currentAction; 
     }
 
+        
     public boolean isBusy() { 
         return busy; 
     }
@@ -91,6 +92,7 @@ public class Chef {
         this.busy = busy; 
     }
     
+        
     public boolean isDashing() {
         return isDashing;
     }
@@ -99,9 +101,10 @@ public class Chef {
         this.isDashing = dashing;
     }
 
+        
     public void move(Direction direction) {
         if (this.busy) {
-            return; // Cannot move while busy
+            return; 
         }
         
         Position newPosition = calculateNewPosition(direction);
@@ -109,18 +112,13 @@ public class Chef {
         this.direction = direction;
     }
 
+        
     private Position calculateNewPosition(Direction direction) {
         return calculatePositionInDirection(position, direction, 1);
     }
     
-    /**
-     * Calculate position in a given direction with specified distance
-     * 
-     * @param current starting position
-     * @param direction direction to move
-     * @param distance number of tiles to move
-     * @return new position
-     */
+    
+        
     private Position calculatePositionInDirection(Position current, Direction direction, int distance) {
         int newX = current.getX();
         int newY = current.getY();
@@ -143,25 +141,27 @@ public class Chef {
         return new Position(newX, newY);
     }
 
+        
     public boolean canMoveTo(Position targetPosition) {
-        // Movement rules:
-        // - Cannot move if busy
-        // - Cannot move to wall
-        // - Cannot move to station tile
-        // - Cannot move to tile occupied by another chef
+        
+        
+        
+        
+        
         return !this.busy;
     }
 
-
+        
     public boolean isInventoryEmpty() {
         return inventory == null;
     }
 
-
+        
     public boolean canPickupItem() {
         return isInventoryEmpty() && !busy;
     }
 
+        
     public boolean pickupItem(Item item) {
         if (!canPickupItem() || item == null) {
             return false;
@@ -171,6 +171,7 @@ public class Chef {
         return true;
     }
 
+        
     public Item dropItem() {
         if (isInventoryEmpty()) {
             return null;
@@ -181,20 +182,15 @@ public class Chef {
         return droppedItem;
     }
 
+        
     public void turn(Direction newDirection) {
         if (!busy) {
             this.direction = newDirection;
         }
     }
     
-    /**
-     * Dash ke arah yang dituju dengan jarak beberapa tile
-     * Memiliki cooldown
-     * 
-     * @param direction arah dash
-     * @param currentTime waktu saat ini (System.nanoTime())
-     * @return posisi target dash, atau null jika gagal
-     */
+    
+        
     public Position dash(Direction direction, long currentTime) {
         long timeSinceLastDash = (currentTime - lastDashTime) / NANOSECONDS_TO_MS;
         if (timeSinceLastDash < GameConfig.DASH_COOLDOWN_MS) {
@@ -214,23 +210,14 @@ public class Chef {
         return targetPosition;
     }
     
-    /**
-     * Cek apakah dash sedang dalam cooldown
-     * 
-     * @param currentTime waktu saat ini (System.nanoTime())
-     * @return true jika masih cooldown
-     */
+    
+        
     public boolean isDashOnCooldown(long currentTime) {
         long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000;
         return timeSinceLastDash < GameConfig.DASH_COOLDOWN_MS;
     }
     
-    /**
-     * Get sisa cooldown dash dalam milliseconds
-     * 
-     * @param currentTime waktu saat ini (System.nanoTime())
-     * @return sisa cooldown (ms), atau 0 jika sudah bisa dash
-     */
+    
     public long getDashCooldownRemaining(long currentTime) {
         long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000;
         long remaining = GameConfig.DASH_COOLDOWN_MS - timeSinceLastDash;

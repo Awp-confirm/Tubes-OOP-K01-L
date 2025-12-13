@@ -2,9 +2,6 @@ package nimons.logic.concurrency;
 
 import nimons.entity.order.Order;
 
-/**
- * Result of async order processing
- */
 public class OrderProcessingResult {
     private final Order order;
     private final boolean success;
@@ -20,6 +17,7 @@ public class OrderProcessingResult {
         return order;
     }
     
+        
     public boolean isSuccess() {
         return success;
     }

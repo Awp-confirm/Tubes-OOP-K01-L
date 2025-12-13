@@ -10,11 +10,11 @@ public class Order {
     private double remainingTimeSeconds;
     private OrderStatus status;
     
-    // Animation properties
-    private float opacity = 0.0f; // 0.0 to 1.0 for fade in/out
+    
+    private float opacity = 0.0f; 
     private boolean isFadingIn = true;
     private boolean isFadingOut = false;
-    private static final float FADE_SPEED = 0.05f; // Adjust for animation speed
+    private static final float FADE_SPEED = 0.05f; 
 
     public Order() {}
 
@@ -29,7 +29,7 @@ public class Order {
         this.status = status;
     }
 
-    // getters & setters
+    
     public int getIndex() { 
         return index; 
     }
@@ -84,14 +84,15 @@ public class Order {
 
     public void setStatus(OrderStatus status) { 
         this.status = status;
-        // Start fade out when order is completed or failed
+        
         if (status == OrderStatus.COMPLETED || status == OrderStatus.FAILED) {
             isFadingOut = true;
             isFadingIn = false;
         }
     }
     
-    // Animation methods
+    
+        
     public void updateAnimation() {
         if (isFadingIn && opacity < 1.0f) {
             opacity += FADE_SPEED;
@@ -111,6 +112,7 @@ public class Order {
         return opacity;
     }
     
+        
     public boolean isFullyFaded() {
         return isFadingOut && opacity <= 0.0f;
     }

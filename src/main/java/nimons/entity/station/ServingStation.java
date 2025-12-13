@@ -15,15 +15,11 @@ import nimons.gui.GameScreen;
 import nimons.logic.GameState;
 import nimons.logic.order.OrderManager;
 
-/**
- * ServingStation (S): Menangani penyajian Dish kepada pelanggan.
- * Logika utama: Validasi Order, mencatat skor, dan menunda pengembalian piring kotor (delay 10 detik).
- */
 public class ServingStation extends Station {
 
     private OrderManager orderManager;
     
-    /** Inner class untuk menahan piring yang sedang dalam antrean pengembalian (delay) */
+    
     private static class PendingPlate {
         final Plate plate;
         float timer;
@@ -42,29 +38,26 @@ public class ServingStation extends Station {
         }
     }
     
-    private List<PendingPlate> pendingReturns; // List antrean piring kotor yang tertunda pengembaliannya.
+    private List<PendingPlate> pendingReturns; 
 
     public ServingStation(String name, Position position) {
         super(name, position);
-        // OrderManager adalah Singleton (diasumsikan)
+        
         this.orderManager = OrderManager.getInstance();
         this.pendingReturns = new ArrayList<>();
     }
     
-    /**
-     * Get GameState lazily (always get fresh reference)
-     */
+    
     private GameState getGameState() {
         GameScreen gameScreen = GameScreen.getInstance();
         return gameScreen != null ? gameScreen.getGameState() : null;
     }
 
-    /**
-     * Update loop: Memajukan timer dan menangani pengembalian piring kotor setelah delay selesai.
-     */
+    
     @Override
+        
     public void update(long deltaTime) {
-        // --- Ambil PlateStorage dari Singleton ---
+        
         PlateStorageStation plateStorage = PlateStorageStation.getInstance();
         
         if (plateStorage == null || pendingReturns.isEmpty()) return;
@@ -74,42 +67,41 @@ public class ServingStation extends Station {
             PendingPlate pp = it.next();
             pp.timer -= deltaTime;
             
-            // Cek jika 10 detik telah berlalu
+            
             if (pp.timer <= 0) {
-                // Kembalikan ke storage menggunakan method internal di PSS
+                
                 plateStorage.addPlateToStack(pp.plate); 
                 it.remove();
             }
         }
     }
 
-    /**
-     * Menangani interaksi Chef (Menyajikan Dish).
-     */
+    
     @Override
+        
     public void onInteract(Chef chef) {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
 
-        // Scenario: Chef menyerahkan Plate
+        
         if (itemHand instanceof Plate) {
             Plate piring = (Plate) itemHand;
             Dish masakan = piring.getFood(); 
 
-            // Validasi 1: Piring Kosong?
+            
             if (masakan == null) {
                 log("FAIL", "REJECTED: Plate is empty. Only plated dishes can be served.");
-                // Don't reduce lives or process empty plate - just reject
+                
                 return;
             }
             
             log("ACTION", "SERVING: Presenting " + masakan.getName() + " to customer...");
 
-            // Validasi 2: Cocok dengan Order?
+            
             nimons.entity.order.Order completedOrder = orderManager.completeOrder(masakan);
 
             if (completedOrder != null) {
-                // Order matched! Add score
+                
                 int reward = completedOrder.getReward();
                 GameState gameState = getGameState();
                 if (gameState != null && gameState.getScore() != null) {
@@ -118,9 +110,9 @@ public class ServingStation extends Station {
                 log("SUCCESS", "ORDER CORRECT! +" + reward + " points. Order removed from queue.");
             } else {
                 log("FAIL", "ORDER MISMATCH! Dish '" + masakan.getName() + "' is not in the order list.");
-                // Play wrong sound effect when serving wrong dish
+                
                 SoundManager.getInstance().playSoundEffect("wrong");
-                // Reduce lives for wrong serve
+                
                 GameState gameState = getGameState();
                 if (gameState != null) {
                     System.out.println("[ServingStation] Calling loseLife(). Current lives: " + gameState.getLives());
@@ -131,18 +123,18 @@ public class ServingStation extends Station {
                 }
             }
             
-            // --- LOGIKA PENGEMBALIAN PIRING KOTOR (DENGAN DELAY 10 DETIK) ---
             
-            // 1. Bersihkan Dish dari piring (Plate.removeDish() membersihkan dish dan set status kotor)
+            
+            
             log("DEBUG", "Before removeDish: isClean=" + piring.isClean() + ", hasFood=" + (piring.getFood() != null));
             piring.removeDish(); 
             log("DEBUG", "After removeDish: isClean=" + piring.isClean() + ", hasFood=" + (piring.getFood() != null));
 
-            // 2. Hapus dari tangan Chef
+            
             chef.setInventory(null); 
             log("DEBUG", "Chef inventory cleared");
 
-            // 3. Tambahkan ke pending returns list dengan delay 10 detik
+            
             pendingReturns.add(new PendingPlate(piring));
             log("SUCCESS", "DIRTY PLATE QUEUED: Plate added to return queue. Will return in 10 seconds.");
         } else {

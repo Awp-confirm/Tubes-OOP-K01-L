@@ -31,7 +31,7 @@ public class MainMenuScene {
     public MainMenuScene(Stage stage) {
         this.stage = stage;
         rootPane = new StackPane();
-        // Use screen bounds for fullscreen
+        
         rootPane.setPrefSize(javafx.stage.Screen.getPrimary().getBounds().getWidth(), 
                             javafx.stage.Screen.getPrimary().getBounds().getHeight());
 
@@ -54,6 +54,7 @@ public class MainMenuScene {
         playButton.setPickOnBounds(false);
     }
 
+        
     private BackgroundImage createBackground(String resourcePath) {
         try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
             if (is == null) return null;
@@ -66,6 +67,7 @@ public class MainMenuScene {
         }
     }
 
+        
     private Font loadPixelFont(double size) {
         try (InputStream is = getClass().getResourceAsStream("/assets/pixel_font.ttf")) {
             if (is != null) return Font.loadFont(is, size);
@@ -73,6 +75,7 @@ public class MainMenuScene {
         return Font.font("Verdana", size);
     }
 
+        
     private StackPane createPlayButton() {
         double radius = 72;
         Circle circle = new Circle(radius);
@@ -97,6 +100,7 @@ public class MainMenuScene {
         return btn;
     }
 
+        
     private HBox createBottomButtons() {
         Button settings = createMenuButton("Settings");
         Button help = createMenuButton("How To Play");
@@ -120,6 +124,7 @@ public class MainMenuScene {
         return h;
     }
 
+        
     private Button createMenuButton(String label) {
         Button b = new Button(label);
         b.setMinWidth(160);
@@ -140,6 +145,7 @@ public class MainMenuScene {
         return b;
     }
 
+        
     private void handlePlay() {
         System.out.println("Opening stage select...");
         javafx.scene.Scene currentScene = stage.getScene();
@@ -147,6 +153,7 @@ public class MainMenuScene {
         stageSelect.show();
     }
 
+        
     private void handleSettings() {
         System.out.println("Opening settings...");
         javafx.scene.Scene currentScene = stage.getScene();
@@ -154,6 +161,7 @@ public class MainMenuScene {
         settingsScreen.show();
     }
 
+        
     private void handleHelp() {
         System.out.println("Opening help screen...");
         javafx.scene.Scene currentScene = stage.getScene();
@@ -161,26 +169,25 @@ public class MainMenuScene {
         helpScreen.show();
     }
 
+        
     private void handleExit() {
         System.exit(0);
     }
     
-    /**
-     * Display the main menu scene
-     */
+    
+        
     public void start() {
         javafx.scene.Scene scene = new javafx.scene.Scene(rootPane);
         stage.setScene(scene);
         stage.setTitle("Nimonscooked - Main Menu");
         stage.show();
         
-        // Play main menu music with loop
+        
         playMusic();
     }
     
-    /**
-     * Play the main menu music
-     */
+    
+        
     public void playMusic() {
         nimons.core.SoundManager.getInstance().playMusic("mainmenu", "music1.mp3");
     }

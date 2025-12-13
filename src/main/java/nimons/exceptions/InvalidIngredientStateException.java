@@ -1,8 +1,5 @@
 package nimons.exceptions;
 
-/**
- * Exception thrown when an ingredient is in an invalid state for the requested operation.
- */
 public class InvalidIngredientStateException extends GameException {
     
     private String ingredientName;

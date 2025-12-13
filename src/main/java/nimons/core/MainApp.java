@@ -11,10 +11,11 @@ import nimons.core.GameConfig;
 public class MainApp extends Application {
 
     @Override
+        
     public void start(Stage primaryStage) {
         primaryStage.setWidth(1200);
         primaryStage.setHeight(800);
-        // Try to load custom font from resources (place your TTF under /assets/fonts/)
+        
         try {
             String[] candidates = new String[] {
                 "/assets/fonts/PixelifySans.ttf",
@@ -43,9 +44,10 @@ public class MainApp extends Application {
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
         primaryStage.show();
-        menu.playMusic();  // Play main menu music
+        menu.playMusic();  
     }
 
+        
     public static void main(String[] args) {
         launch(args);
     }

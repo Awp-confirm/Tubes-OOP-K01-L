@@ -10,27 +10,32 @@ public class Nori extends Ingredient {
     }
 
     @Override
+        
     public boolean canBeChopped() {
-        return false; // Nori tidak perlu dipotong
+        return false; 
     }
 
     @Override
+        
     public boolean canBeCooked() {
-        return false; // Nori tidak perlu dimasak
+        return false; 
     }
 
     @Override
+        
     public boolean canBePlacedOnPlate() {
-        return true; // Nori bisa langsung diletakkan di plate
+        return getState() == IngredientState.RAW; 
     }
 
     @Override
+        
     public void chop() {
-        // Nori tidak bisa dipotong
+        
     }
 
     @Override
+        
     public void cook() {
-        // Nori tidak bisa dimasak
+        
     }
 }

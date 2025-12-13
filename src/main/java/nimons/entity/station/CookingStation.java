@@ -19,22 +19,18 @@ import nimons.entity.item.interfaces.Preparable;
 import nimons.exceptions.InvalidIngredientStateException;
 import nimons.exceptions.StationFullException;
 
-/**
- * CookingStation: Menangani pemrosesan Ingredient (memasak/menggoreng).
- * Setiap stasiun memiliki Utensil Cooking statis (BoilingPot/FryingPan).
- */
 public class CookingStation extends Station {
 
     private KitchenUtensil utensils;
-    private long lastCookingSound = 0;  // Track last time cooking sound was played
+    private long lastCookingSound = 0;  
 
     public CookingStation(String name, Position position) {
         super(name, position);
         
         final int x = position.getX();
         
-        // Inisialisasi Utensil berdasarkan posisi X
-        // 2 Boiling Pot (x=10, x=11) dan 1 Frying Pan (x=12)
+        
+        
         if (x == 10 || x == 11) {
             this.utensils = new BoilingPot();
             this.utensils.setPortable(true);
@@ -42,7 +38,7 @@ public class CookingStation extends Station {
             this.utensils = new FryingPan();
             this.utensils.setPortable(true);
         } else {
-            // Default to BoilingPot for other positions
+            
             this.utensils = new BoilingPot(); 
             this.utensils.setPortable(true);
         }
@@ -54,19 +50,19 @@ public class CookingStation extends Station {
         return this.utensils;
     }
     
+        
     public void placeUtensils(KitchenUtensil u) {
         this.utensils = u;
     }
 
-    /**
-     * Memajukan timer Utensil dan Ingredient di dalamnya setiap game tick.
-     */
+    
     @Override
+        
     public void update(long deltaTime) {
         if (utensils instanceof CookingDevice) {
             ((CookingDevice) utensils).update(deltaTime); 
             
-            // Update Cooking Timer untuk setiap Ingredient di dalam Utensil
+            
             boolean isAnyIngredientCooking = false;
             for (Preparable prep : utensils.getContents()) {
                 if (prep instanceof Ingredient) {
@@ -77,18 +73,18 @@ public class CookingStation extends Station {
                         log("TIMER", timerLog); 
                     }
                     
-                    // Check if any ingredient is cooking
+                    
                     if (ingredient.getState() == IngredientState.COOKING) {
                         isAnyIngredientCooking = true;
                     }
                 }
             }
             
-            // Play cooking sound (frying/boiling) every 500ms if cooking
+            
             if (isAnyIngredientCooking) {
                 long currentTime = System.currentTimeMillis();
                 if (currentTime - lastCookingSound >= 500) {
-                    // Determine sound based on utensil type
+                    
                     if (utensils instanceof FryingPan) {
                         SoundManager.getInstance().playSoundEffect("frying");
                     } else if (utensils instanceof BoilingPot) {
@@ -100,11 +96,9 @@ public class CookingStation extends Station {
         }
     }
     
-    // --- PROGRESS BAR LOGIC (Dipertahankan sesuai logic yang diberikan) ---
+    
 
-    /**
-     * Mengembalikan progress ratio (0.0 - 1.0) dari Ingredient pertama yang sedang dimasak.
-     */
+    
     @Override
     public float getProgressRatio() {
         if (utensils == null || utensils.getContents().isEmpty()) {
@@ -128,24 +122,22 @@ public class CookingStation extends Station {
         return 0.0f;
     }
 
-    /**
-     * Mengembalikan true jika Ingredient sedang dalam fase COOKING.
-     */
+    
     @Override
+        
     public boolean isActive() {
         return getProgressRatio() > 0.0f && getProgressRatio() < 1.0f;
     }
 
-    // ----------------------------------------------------------
+    
 
-    /**
-     * Plating Awal: Mengemas Ingredient tunggal (Cooked) menjadi Dish Parsial.
-     */
+    
+        
     private boolean processPlating(Plate p, Ingredient isi) {
         List<Preparable> components = new ArrayList<>(); 
         components.add(isi);
         
-        // Buat Dish Parsial
+        
         Dish newDish = new Dish(isi.getName().toLowerCase(), isi.getName(), components);
         
         p.placeDish(newDish); 
@@ -153,17 +145,16 @@ public class CookingStation extends Station {
         return true; 
     }
 
-    /**
-     * Menangani interaksi Chef (Angkat Utensil, Plating, Masukkan Bahan, Taruh Utensil).
-     */
+    
     @Override
+        
     public void onInteract(Chef chef) {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
 
         if (this.utensils != null) {
             
-            // 1. ANGKAT UTENSIL (Hand: Kosong)
+            
             if (itemHand == null) {
                 if (utensils.isPortable()) {
                     log("ACTION", "TAKEN: " + utensils.getName() + " lifted.");
@@ -176,7 +167,7 @@ public class CookingStation extends Station {
                 }
             }
             
-            // 2. PLATING DARI KOMPOR (Hand: Piring)
+            
             if (itemHand instanceof Plate) {
                 Plate p = (Plate) itemHand;
                 
@@ -187,7 +178,7 @@ public class CookingStation extends Station {
                     
                     if (isi.getState() == IngredientState.COOKED) {
                         
-                        // Cek: Plate harus kosong untuk Plating Awal dari Kompor
+                        
                         if (p.getFood() == null) {
                             
                             if (processPlating(p, isi)) {
@@ -195,7 +186,7 @@ public class CookingStation extends Station {
                                 log("SUCCESS", "PLATED: Cooked ingredient transferred to plate.");
                                 
                                 if (utensils instanceof CookingDevice) {
-                                    ((CookingDevice) utensils).reset(); // Reset device setelah plating
+                                    ((CookingDevice) utensils).reset(); 
                                 }
                                 return;
                             }
@@ -216,7 +207,7 @@ public class CookingStation extends Station {
                 }
             }
             
-            // 3. MASUKKAN BAHAN KE PANCI (Hand: Bahan) - Only if utensil is on station
+            
             if (itemHand instanceof Preparable && utensils instanceof CookingDevice) {
                 CookingDevice device = (CookingDevice) utensils;
                 Preparable bahan = (Preparable) itemHand;
@@ -230,7 +221,7 @@ public class CookingStation extends Station {
                     String ingredientName = ((Item)bahan).getName();
                     log("SUCCESS", "START COOKING: " + ingredientName + " placed into " + utensils.getName() + ".");
                     
-                    // Play frying/cooking sound effect
+                    
                     SoundManager.getInstance().playSoundEffect("frying");
                     
                 } catch (StationFullException e) {
@@ -247,7 +238,7 @@ public class CookingStation extends Station {
             return;
         }
 
-        // --- SKENARIO 4: TARUH UTENSIL (Jika Spot KOSONG) ---
+        
         
         if (itemHand instanceof KitchenUtensil) {
             KitchenUtensil utensilHand = (KitchenUtensil) itemHand;

@@ -31,15 +31,12 @@ import nimons.core.GameConfig;
 import nimons.logic.StageProgress;
 import nimons.logic.StageProgress.StageStatus;
 
-/**
- * Stage selection screen with split layout
- */
 public class StageSelectScreen {
 
     private final Stage stage;
     private final Scene previousScene;
     private VBox detailPanel;
-    private String selectedStageId = "stageSushi"; // Default selection
+    private String selectedStageId = "stageSushi"; 
     private List<Button> stageButtons = new ArrayList<>();
 
     public StageSelectScreen(Stage stage, Scene previousScene) {
@@ -47,27 +44,28 @@ public class StageSelectScreen {
         this.previousScene = previousScene;
     }
 
+        
     public void show() {
         BorderPane root = new BorderPane();
         root.setBackground(new Background(new BackgroundFill(
                 Color.web("#1a0505"), CornerRadii.EMPTY, Insets.EMPTY)));
 
-        // Title
+        
         Label title = new Label("SELECT STAGE");
         title.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 48));
         title.setTextFill(Color.web("#F2C38F"));
         title.setAlignment(Pos.CENTER);
         title.setPadding(new Insets(10, 20, 5, 20));
 
-        // Main content split layout
+        
         HBox mainContent = new HBox(20);
         mainContent.setPadding(new Insets(10));
 
-        // LEFT SIDE - Stage List
+        
         VBox leftSide = createStageList();
         leftSide.setPrefWidth(400);
 
-        // RIGHT SIDE - Stage Details
+        
         detailPanel = new VBox(15);
         detailPanel.setAlignment(Pos.TOP_CENTER);
         detailPanel.setPadding(new Insets(10, 20, 10, 20));
@@ -76,13 +74,13 @@ public class StageSelectScreen {
         detailPanel.setEffect(new DropShadow(12, Color.color(0, 0, 0, 0.6)));
         HBox.setHgrow(detailPanel, Priority.ALWAYS);
 
-        // Load initial detail
+        
         updateDetailPanel(selectedStageId, "Stage 1: Sushi Restaurant",
                 "Master the art of sushi making!", GameConfig.PASSING_SCORE_THRESHOLD);
 
         mainContent.getChildren().addAll(leftSide, detailPanel);
 
-        // Back button
+        
         Button backButton = createBackButton();
         backButton.setOnAction(e -> goBack());
 
@@ -99,6 +97,7 @@ public class StageSelectScreen {
         stage.setTitle("Nimonscooked - Stage Select");
     }
 
+        
     private VBox createStageList() {
         VBox listBox = new VBox(15);
         listBox.setAlignment(Pos.TOP_CENTER);
@@ -133,6 +132,7 @@ public class StageSelectScreen {
         return listBox;
     }
 
+        
     private Button createStageListItem(String stageName, String stageId, String description, int targetScore) {
         StageProgress progress = StageProgress.getInstance();
         StageStatus status = progress.getStageStatus(stageId);
@@ -191,6 +191,7 @@ public class StageSelectScreen {
         return stageButton;
     }
 
+        
     private void updateAllButtonStyles() {
         for (Button btn : stageButtons) {
             btn.setStyle(getButtonStyle(StageStatus.AVAILABLE, false));
@@ -230,9 +231,10 @@ public class StageSelectScreen {
         }
     }
 
-    // ==================================================
-    // 📌 The Method Modified to Support MAP PREVIEW
-    // ==================================================
+    
+    
+    
+        
     private void updateDetailPanel(String stageId, String stageName, String description, int targetScore) {
         detailPanel.getChildren().clear();
 
@@ -240,14 +242,14 @@ public class StageSelectScreen {
         StageStatus status = progress.getStageStatus(stageId);
         int bestScore = progress.getBestScore(stageId);
 
-        // Title
+        
         Label nameLabel = new Label(stageName);
         nameLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 36));
         nameLabel.setTextFill(Color.web("#F2C38F"));
         nameLabel.setWrapText(true);
         nameLabel.setTextAlignment(TextAlignment.CENTER);
 
-        // Status Badge
+        
         Label statusBadge = new Label(getStatusTextDetail(status));
         statusBadge.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 20));
         statusBadge.setTextFill(getStatusColor(status));
@@ -255,7 +257,7 @@ public class StageSelectScreen {
         statusBadge.setBackground(new Background(new BackgroundFill(
                 Color.web("#1a0505"), new CornerRadii(12), Insets.EMPTY)));
 
-        // Description
+        
         Label descLabel = new Label(description);
         descLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.NORMAL, 16));
         descLabel.setTextFill(Color.web("#D4A574"));
@@ -263,7 +265,7 @@ public class StageSelectScreen {
         descLabel.setTextAlignment(TextAlignment.CENTER);
         descLabel.setMaxWidth(500);
 
-        // ========== MAP PREVIEW REPLACEMENT ==========
+        
         VBox mapPreview = new VBox(10);
         mapPreview.setAlignment(Pos.CENTER);
         mapPreview.setPadding(new Insets(5, 0, 0, 0));
@@ -302,7 +304,7 @@ public class StageSelectScreen {
             mapPreview.getChildren().addAll(mapLabel, error);
         }
 
-        // Score Grid
+        
         HBox scoresBox = new HBox(60);
         scoresBox.setAlignment(Pos.CENTER);
 
@@ -311,7 +313,7 @@ public class StageSelectScreen {
 
         scoresBox.getChildren().addAll(targetBox, bestBox);
 
-        // Play Button
+        
         Button playButton = new Button(status == StageStatus.LOCKED ? "LOCKED" : "PLAY STAGE");
         playButton.setMinWidth(300);
         playButton.setMinHeight(60);
@@ -351,13 +353,13 @@ public class StageSelectScreen {
             playButton.setOnAction(e -> startStage(stageId));
         }
 
-        // Spacers
+        
         Region spacer1 = new Region();
         spacer1.setMinHeight(10);
         Region spacer2 = new Region();
         spacer2.setMinHeight(15);
 
-        // Add Components
+        
         detailPanel.getChildren().addAll(
                 nameLabel,
                 statusBadge,
@@ -370,6 +372,7 @@ public class StageSelectScreen {
         );
     }
 
+        
     private VBox createScoreBox(String label, String value, String valueColor) {
         VBox box = new VBox(8);
         box.setAlignment(Pos.CENTER);
@@ -416,12 +419,14 @@ public class StageSelectScreen {
         }
     }
 
+        
     private void startStage(String stageId) {
         System.out.println("Starting stage: " + stageId);
         GameScreen gameScreen = new GameScreen(stage, stageId);
         gameScreen.start();
     }
 
+        
     private Button createBackButton() {
         Button button = new Button("BACK TO MENU");
         button.setMinWidth(200);
@@ -450,6 +455,7 @@ public class StageSelectScreen {
         return button;
     }
 
+        
     private void goBack() {
         stage.setScene(previousScene);
         stage.setTitle("Nimonscooked - Main Menu");

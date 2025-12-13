@@ -1,8 +1,5 @@
 package nimons.exceptions;
 
-/**
- * Exception thrown when trying to add items to a full station or utensil.
- */
 public class StationFullException extends GameException {
     
     private String stationName;
