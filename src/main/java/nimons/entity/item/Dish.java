@@ -15,7 +15,6 @@ public class Dish extends Item {
         this.components = components;
     }
 
-    // getters & setters (tetap sama)
     public List<Preparable> getComponents() { 
         return components; 
     }
@@ -24,23 +23,19 @@ public class Dish extends Item {
         this.components = components; 
     }
 
-    // --- PERBAIKAN KRITIS: Menggunakan Setter Item Super Class ---
     public void setName(String newName) {
-        // PENTING: Panggil setter dari super class (Item)
-        super.setName(newName); 
+        super.setName(newName);
     }
-    // ------------------------------------------------
-
 
     /**
-     * Mengecek apakah Ingredient dapat ditambahkan ke Dish yang sudah ada.
+     * Mengecek apakah ingredient dapat ditambahkan ke dish
      */
     public boolean canAddIngredient(Ingredient ingredient) {
         return ingredient != null && ingredient.canBePlacedOnPlate();
     }
     
     /**
-     * Menambahkan Ingredient baru ke Dish yang sedang dirakit.
+     * Menambahkan ingredient ke dish
      */
     public void addIngredient(Ingredient ingredient) {
         if (canAddIngredient(ingredient)) {
@@ -48,7 +43,6 @@ public class Dish extends Item {
         }
     }
     
-    // utility methods (tetap sama)
     public void addComponent(Preparable ingredient) {
         if (components != null && ingredient != null && ingredient.canBePlacedOnPlate()) {
             components.add(ingredient);

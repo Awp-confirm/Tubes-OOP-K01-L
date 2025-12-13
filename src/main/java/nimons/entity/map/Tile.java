@@ -20,7 +20,6 @@ public class Tile {
         this.wall = wall;
     }
 
-    // getters & setters
     public Position getPosition() {
         return position;
     }
@@ -62,12 +61,7 @@ public class Tile {
     }
 
     /**
-     * Check if this tile is walkable
-     * Tile is walkable if:
-     * - Not a wall
-     * - No station on it
-     * - No chef on it
-     * - No item dropped on it
+     * Mengecek apakah tile dapat dilalui (tidak ada wall, station, chef, atau item)
      */
     public boolean isWalkable() {
         return !wall && station == null && chefOnTile == null && itemOnTile == null;

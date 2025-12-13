@@ -22,7 +22,6 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
         this.capacity = capacity;
     }
 
-    // getters & setters
     @Override
     public int capacity() { 
         return capacity; 
@@ -43,14 +42,13 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
     }
 
     @Override 
-    public boolean canAccept(Preparable ingredient) { 
-        // Frying pan hanya bisa menerima ingredient dengan status CHOPPED
+    public boolean canAccept(Preparable ingredient) {
+        // Proses validasi: cek apakah ingredient sudah CHOPPED dan bisa dimasak
         Set<Preparable> contents = getContents();
         if (contents == null || ingredient == null) {
             return false;
         }
         
-        // Cek apakah ingredient sudah CHOPPED
         if (ingredient instanceof nimons.entity.item.Ingredient) {
             nimons.entity.item.Ingredient ing = (nimons.entity.item.Ingredient) ingredient;
             boolean isChopped = ing.getState() == nimons.entity.item.IngredientState.CHOPPED;
@@ -87,7 +85,7 @@ public class FryingPan extends KitchenUtensil implements CookingDevice {
 
     @Override 
     public void startCooking() {
-        // Masak semua ingredient dalam frying pan
+        // Proses memasak: panggil cook() untuk semua ingredient yang ada
         if (getContents() != null) {
             for (Preparable ingredient : getContents()) {
                 if (ingredient.canBeCooked()) {

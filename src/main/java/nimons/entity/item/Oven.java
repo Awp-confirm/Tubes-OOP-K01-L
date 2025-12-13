@@ -19,7 +19,6 @@ public class Oven extends KitchenUtensil implements CookingDevice {
         this.capacity = capacity;
     }
 
-    // getters & setters
     @Override
     public int capacity() { 
         return capacity; 
@@ -40,8 +39,8 @@ public class Oven extends KitchenUtensil implements CookingDevice {
     }
 
     @Override 
-    public boolean canAccept(Preparable ingredient) { 
-        // Oven bisa menerima ingredient jika belum penuh dan ingredient bisa dimasak
+    public boolean canAccept(Preparable ingredient) {
+        // Proses validasi: cek kapasitas dan apakah ingredient bisa dimasak
         Set<Preparable> contents = getContents();
         if (contents == null) {
             return false;
@@ -58,7 +57,7 @@ public class Oven extends KitchenUtensil implements CookingDevice {
 
     @Override 
     public void startCooking() {
-        // Masak semua ingredient dalam oven
+        // Proses memasak: panggil cook() untuk semua ingredient yang ada
         if (getContents() != null) {
             for (Preparable ingredient : getContents()) {
                 if (ingredient.canBeCooked()) {
