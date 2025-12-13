@@ -16,6 +16,7 @@ public class EbiMaki extends Recipe {
         super("Ebi Maki", createRequirements());
     }
 
+        
     private static List<IngredientRequirement> createRequirements() {
         return Arrays.asList(
             new IngredientRequirement(Nori.class, IngredientState.RAW),

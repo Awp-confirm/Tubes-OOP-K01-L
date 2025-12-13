@@ -15,7 +15,7 @@ public class IngredientRequirement {
         this.requiredState = requiredState;
     }
 
-    // getters & setters
+    
     public Class<? extends Ingredient> getIngredientType() { 
         return ingredientType; 
     }
@@ -32,14 +32,16 @@ public class IngredientRequirement {
         this.requiredState = requiredState; 
     }
 
-    // utility methods
+    
+        
     public boolean matches(Ingredient ingredient) {
-        // Cek apakah ingredient memiliki tipe dan state yang sesuai
+        
         return ingredientType.isInstance(ingredient) && 
                ingredient.getState() == requiredState;
     }
 
     @Override
+        
     public String toString() {
         return ingredientType.getSimpleName() + " (" + requiredState + ")";
     }

@@ -4,43 +4,32 @@ import nimons.core.GameConfig;
 import nimons.entity.item.Ingredient;
 import nimons.entity.item.IngredientState;
 
-/**
- * STRATEGY PATTERN - Concrete Strategy: Boiling
- * 
- * Strategi untuk memasak dengan cara merebus (boiling).
- * Cocok untuk: Rice, beberapa ingredient lain yang memerlukan boiling
- * 
- * Boiling biasanya memiliki durasi lebih lama dan lebih sulit untuk burn
- */
 public class BoilingStrategy implements CookingStrategy {
     
     private final long cookingDuration;
     private final long burningThreshold;
     
-    /**
-     * Constructor dengan timing lebih lama (boiling takes longer)
-     */
+    
     public BoilingStrategy() {
-        // Boiling takes 1.5x longer than frying
+        
         this.cookingDuration = (long) (GameConfig.TIME_TO_COOK_MS * 1.5);
         this.burningThreshold = (long) (cookingDuration + GameConfig.TIME_TO_BURN_MS * 1.5);
     }
     
-    /**
-     * Constructor dengan custom timing
-     */
+    
     public BoilingStrategy(long cookingDuration, long burningThreshold) {
         this.cookingDuration = cookingDuration;
         this.burningThreshold = burningThreshold;
     }
     
     @Override
+        
     public boolean cook(Ingredient ingredient, long elapsedTime) {
         IngredientState currentState = ingredient.getState();
         
-        // Handle state transitions based on elapsed time
+        
         if (elapsedTime >= burningThreshold) {
-            // Over-boiled (burned equivalent)
+            
             if (currentState != IngredientState.BURNED) {
                 ingredient.setState(IngredientState.BURNED);
                 System.out.println("[BoilingStrategy] Ingredient over-boiled!");
@@ -48,7 +37,7 @@ public class BoilingStrategy implements CookingStrategy {
             return false;
             
         } else if (elapsedTime >= cookingDuration) {
-            // Perfectly boiled!
+            
             if (currentState != IngredientState.COOKED) {
                 ingredient.setState(IngredientState.COOKED);
                 System.out.println("[BoilingStrategy] Ingredient boiled perfectly!");
@@ -56,7 +45,7 @@ public class BoilingStrategy implements CookingStrategy {
             }
             
         } else {
-            // Still boiling
+            
             if (currentState != IngredientState.COOKING) {
                 ingredient.setState(IngredientState.COOKING);
             }
@@ -66,6 +55,7 @@ public class BoilingStrategy implements CookingStrategy {
     }
     
     @Override
+        
     public boolean canApply(Ingredient ingredient) {
         return ingredient != null && 
                ingredient.canBeCooked() &&
@@ -89,6 +79,7 @@ public class BoilingStrategy implements CookingStrategy {
     }
     
     @Override
+        
     public void prepareIngredient(Ingredient ingredient) {
         if (ingredient.getState() == IngredientState.RAW) {
             ingredient.setState(IngredientState.COOKING);

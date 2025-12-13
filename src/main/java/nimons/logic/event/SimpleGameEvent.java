@@ -1,10 +1,5 @@
 package nimons.logic.event;
 
-/**
- * OBSERVER PATTERN - Concrete Event Implementation
- * 
- * Represents a specific game event with its data
- */
 public class SimpleGameEvent implements GameEvent {
     
     private final GameEventType eventType;
@@ -37,6 +32,7 @@ public class SimpleGameEvent implements GameEvent {
     }
     
     @Override
+        
     public String toString() {
         return String.format("GameEvent[type=%s, data=%s, timestamp=%d]", 
             eventType, data, timestamp);

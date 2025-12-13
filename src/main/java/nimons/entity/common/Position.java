@@ -13,7 +13,7 @@ public class Position {
         this.y = y;
     }
 
-    // getter & setter
+    
     public int getX() {
         return x;
     }

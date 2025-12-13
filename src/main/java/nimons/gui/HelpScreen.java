@@ -21,9 +21,6 @@ import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import nimons.core.GameConfig;
 
-/**
- * Help screen displaying game controls and tutorial
- */
 public class HelpScreen {
     
     private final Stage stage;
@@ -34,25 +31,26 @@ public class HelpScreen {
         this.previousScene = previousScene;
     }
     
+        
     public void show() {
         BorderPane root = new BorderPane();
         root.setBackground(new Background(new BackgroundFill(
             Color.web("#1a0505"), CornerRadii.EMPTY, Insets.EMPTY)));
         
-        // Title
+        
         Label title = new Label("GAME CONTROLS & TUTORIAL");
     title.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 36));
         title.setTextFill(Color.web("#F2C38F"));
         title.setAlignment(Pos.CENTER);
         title.setPadding(new Insets(30, 20, 20, 20));
         
-        // Content box
+        
         VBox contentBox = new VBox(20);
         contentBox.setAlignment(Pos.CENTER);
         contentBox.setPadding(new Insets(20));
         contentBox.setMaxWidth(900);
         
-        // Movement Section
+        
         VBox movementBox = createControlBox(
             "MOVEMENT",
             new String[][] {
@@ -64,7 +62,7 @@ public class HelpScreen {
             }
         );
         
-        // Actions Section
+        
         VBox actionsBox = createControlBox(
             "ACTIONS",
             new String[][] {
@@ -77,17 +75,17 @@ public class HelpScreen {
         
         contentBox.getChildren().addAll(movementBox, actionsBox);
         
-        // Wrap content in ScrollPane
+        
         ScrollPane scrollPane = new ScrollPane(contentBox);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: #1a0505; -fx-background-color: #1a0505;");
         scrollPane.setPadding(new Insets(0));
         
-        // Remove scrollbar styling for cleaner look
+        
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         
-        // Back button
+        
         Button backButton = createBackButton();
         backButton.setOnAction(e -> goBack());
         
@@ -104,6 +102,7 @@ public class HelpScreen {
         stage.setTitle("Nimonscooked - Help & Tutorial");
     }
     
+        
     private VBox createControlBox(String sectionTitle, String[][] controls) {
         VBox box = new VBox(10);
         box.setAlignment(Pos.CENTER_LEFT);
@@ -112,7 +111,7 @@ public class HelpScreen {
             Color.web("#2A0F0F"), new CornerRadii(10), Insets.EMPTY)));
         box.setEffect(new DropShadow(8, Color.color(0, 0, 0, 0.5)));
         
-        // Section title
+        
         Label titleLabel = new Label(sectionTitle);
     titleLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 24));
         titleLabel.setTextFill(Color.web("#E8A36B"));
@@ -120,12 +119,12 @@ public class HelpScreen {
         
         box.getChildren().add(titleLabel);
         
-        // Controls
+        
         for (String[] control : controls) {
             HBox controlRow = new HBox(15);
             controlRow.setAlignment(Pos.CENTER_LEFT);
             
-            // Key label
+            
             Label keyLabel = new Label(control[0]);
             keyLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 16));
             keyLabel.setTextFill(Color.web("#FFFFFF"));
@@ -135,7 +134,7 @@ public class HelpScreen {
                 Color.web("#3a1f1f"), new CornerRadii(5), Insets.EMPTY)));
             keyLabel.setPadding(new Insets(8, 12, 8, 12));
             
-            // Description label
+            
             Label descLabel = new Label(control[1]);
             descLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, 16));
             descLabel.setTextFill(Color.web("#D4A574"));
@@ -147,6 +146,7 @@ public class HelpScreen {
         return box;
     }
     
+        
     private VBox createInfoBox(String sectionTitle, String[] items) {
         VBox box = new VBox(8);
         box.setAlignment(Pos.CENTER_LEFT);
@@ -155,7 +155,7 @@ public class HelpScreen {
             Color.web("#2A0F0F"), new CornerRadii(10), Insets.EMPTY)));
         box.setEffect(new DropShadow(8, Color.color(0, 0, 0, 0.5)));
         
-        // Section title
+        
         Label titleLabel = new Label(sectionTitle);
     titleLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 24));
         titleLabel.setTextFill(Color.web("#E8A36B"));
@@ -163,7 +163,7 @@ public class HelpScreen {
         
         box.getChildren().add(titleLabel);
         
-        // Items
+        
         for (String item : items) {
             Label itemLabel = new Label(item);
             itemLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, 14));
@@ -177,6 +177,7 @@ public class HelpScreen {
         return box;
     }
     
+        
     private Button createBackButton() {
     Button button = new Button("BACK TO MENU");
         button.setMinWidth(200);
@@ -205,6 +206,7 @@ public class HelpScreen {
         return button;
     }
     
+        
     private void goBack() {
         stage.setScene(previousScene);
         stage.setTitle("Nimonscooked - Main Menu");

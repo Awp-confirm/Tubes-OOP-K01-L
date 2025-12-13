@@ -20,9 +20,6 @@ import nimons.core.GameSettings;
 import nimons.core.GameConfig;
 import nimons.core.GameSettings.Difficulty;
 
-/**
- * Settings screen for difficulty selection
- */
 public class SettingsScreen {
     
     private final Stage stage;
@@ -33,30 +30,31 @@ public class SettingsScreen {
         this.previousScene = previousScene;
     }
     
+        
     public void show() {
         BorderPane root = new BorderPane();
         root.setBackground(new Background(new BackgroundFill(
             Color.web("#1a0505"), CornerRadii.EMPTY, Insets.EMPTY)));
         
-        // Title
+        
         Label title = new Label("SETTINGS");
     title.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 48));
         title.setTextFill(Color.web("#F2C38F"));
         title.setAlignment(Pos.CENTER);
         title.setPadding(new Insets(50, 20, 30, 20));
         
-        // Difficulty section
+        
         Label difficultyLabel = new Label("DIFFICULTY");
     difficultyLabel.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 28));
         difficultyLabel.setTextFill(Color.web("#E8A36B"));
         
-        // Current difficulty display
+        
         GameSettings settings = GameSettings.getInstance();
         Label currentDifficulty = new Label("Current: " + settings.getDifficulty().getDisplayName());
     currentDifficulty.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.NORMAL, 20));
         currentDifficulty.setTextFill(Color.web("#D4A574"));
         
-        // Difficulty buttons
+        
         VBox difficultyButtons = new VBox(15);
         difficultyButtons.setAlignment(Pos.CENTER);
         
@@ -69,7 +67,7 @@ public class SettingsScreen {
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(50));
         
-        // Back button
+        
         Button backButton = createBackButton();
         backButton.setOnAction(e -> goBack());
         
@@ -86,6 +84,7 @@ public class SettingsScreen {
         stage.setTitle("Nimonscooked - Settings");
     }
     
+        
     private Button createDifficultyButton(Difficulty difficulty, Label currentLabel) {
         GameSettings settings = GameSettings.getInstance();
         
@@ -97,7 +96,7 @@ public class SettingsScreen {
         button.setMinHeight(60);
     button.setFont(Font.font(GameConfig.DEFAULT_FONT_FAMILY, FontWeight.BOLD, 20));
         
-        // Highlight if selected
+        
         updateButtonStyle(button, settings.getDifficulty() == difficulty);
         
         button.setCursor(Cursor.HAND);
@@ -107,7 +106,7 @@ public class SettingsScreen {
             settings.setDifficulty(difficulty);
             currentLabel.setText("Current: " + difficulty.getDisplayName());
             
-            // Update all buttons
+            
             ((VBox) button.getParent()).getChildren().forEach(node -> {
                 if (node instanceof Button) {
                     Button btn = (Button) node;
@@ -130,6 +129,7 @@ public class SettingsScreen {
         return button;
     }
     
+        
     private void updateButtonStyle(Button button, boolean selected) {
         if (selected) {
             button.setStyle(
@@ -152,6 +152,7 @@ public class SettingsScreen {
         }
     }
     
+        
     private Button createBackButton() {
         Button button = new Button("BACK TO MENU");
         button.setMinWidth(200);
@@ -180,6 +181,7 @@ public class SettingsScreen {
         return button;
     }
     
+        
     private void goBack() {
         stage.setScene(previousScene);
         stage.setTitle("Nimonscooked - Main Menu");

@@ -16,6 +16,7 @@ public class KappaMaki extends Recipe {
         super("Kappa Maki", createRequirements());
     }
 
+        
     private static List<IngredientRequirement> createRequirements() {
         return Arrays.asList(
             new IngredientRequirement(Nori.class, IngredientState.RAW),

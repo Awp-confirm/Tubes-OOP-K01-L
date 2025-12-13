@@ -10,21 +10,25 @@ public class Cucumber extends Ingredient {
     }
 
     @Override
+        
     public boolean canBeChopped() {
         return getState() == IngredientState.RAW;
     }
 
     @Override
+        
     public boolean canBeCooked() {
-        return false; // Cucumber tidak perlu dimasak
+        return false; 
     }
 
     @Override
+        
     public boolean canBePlacedOnPlate() {
         return getState() == IngredientState.CHOPPED;
     }
 
     @Override
+        
     public void chop() {
         if (getState() == IngredientState.RAW) {
             setState(IngredientState.CHOPPED);
@@ -32,7 +36,8 @@ public class Cucumber extends Ingredient {
     }
 
     @Override
+        
     public void cook() {
-        // Cucumber tidak bisa dimasak
+        
     }
 }

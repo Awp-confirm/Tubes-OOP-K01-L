@@ -15,7 +15,8 @@ public class Plate extends KitchenUtensil {
         this.dish = dish;
     }
 
-    // getters & setters
+    
+        
     public boolean isClean() { 
         return clean; 
     }
@@ -32,7 +33,7 @@ public class Plate extends KitchenUtensil {
         this.dish = dish; 
     }
     
-    // Aliases for backward compatibility with stations
+    
     public Dish getFood() {
         return dish;
     }
@@ -41,23 +42,27 @@ public class Plate extends KitchenUtensil {
         this.dish = dish;
     }
 
-    // utility methods
+    
+        
     public boolean canPlaceDish() {
         return clean && dish == null;
     }
 
+        
     public void placeDish(Dish newDish) {
         if (canPlaceDish()) {
             this.dish = newDish;
         }
     }
 
+        
     public void washPlate() {
         if (dish == null) {
             this.clean = true;
         }
     }
 
+        
     public Dish removeDish() {
         Dish removedDish = this.dish;
         this.dish = null;

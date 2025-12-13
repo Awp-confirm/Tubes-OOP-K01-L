@@ -19,8 +19,9 @@ public class Oven extends KitchenUtensil implements CookingDevice {
         this.capacity = capacity;
     }
 
-    // getters & setters
+    
     @Override
+        
     public int capacity() { 
         return capacity; 
     }
@@ -35,13 +36,15 @@ public class Oven extends KitchenUtensil implements CookingDevice {
     }
 
     @Override 
+        
     public boolean isPortable() { 
         return super.isPortable(); 
     }
 
     @Override 
+        
     public boolean canAccept(Preparable ingredient) { 
-        // Oven bisa menerima ingredient jika belum penuh dan ingredient bisa dimasak
+        
         Set<Preparable> contents = getContents();
         if (contents == null) {
             return false;
@@ -50,6 +53,7 @@ public class Oven extends KitchenUtensil implements CookingDevice {
     }
 
     @Override 
+        
     public void addIngredient(Preparable ingredient) {
         if (canAccept(ingredient) && getContents() != null) {
             getContents().add(ingredient);
@@ -57,8 +61,9 @@ public class Oven extends KitchenUtensil implements CookingDevice {
     }
 
     @Override 
+        
     public void startCooking() {
-        // Masak semua ingredient dalam oven
+        
         if (getContents() != null) {
             for (Preparable ingredient : getContents()) {
                 if (ingredient.canBeCooked()) {
@@ -69,10 +74,12 @@ public class Oven extends KitchenUtensil implements CookingDevice {
     }
 
     @Override
+        
     public void update(long deltaTime) {
     }
 
     @Override
+        
     public void reset() {
         if (getContents() != null) {
             getContents().clear();

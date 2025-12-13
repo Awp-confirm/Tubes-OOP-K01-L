@@ -8,14 +8,9 @@ import nimons.entity.common.Position;
 import nimons.entity.item.Item;
 import nimons.entity.item.Plate; 
 
-/**
- * WashingStation (W): Menangani pencucian piring kotor di SINK.
- * Clean plates akan dikirim ke Rack station.
- * Constraint: Menggunakan Busy State (Chef di-freeze selama durasi mencuci).
- */
 public class WashingStation extends Station {
     
-    private static WashingStation activeWashingStation; // Track which washing station is active
+    private static WashingStation activeWashingStation; 
     private Rack outputRackReference; 
 
     private Stack<Plate> dirtyPlates; 
@@ -23,12 +18,11 @@ public class WashingStation extends Station {
     private Plate plateInWash; 
     private float currentProgress = 0;
     
-    // --- FIELD UNTUK BUSY STATE ---
-    private Chef currentWasher; 
-    // ----------------------------
     
-    private float logTimer = 0; // Mengembalikan timer log untuk update progress bar 
-
+    private Chef currentWasher; 
+    
+    
+    private float logTimer = 0; 
 
     public WashingStation(String name, Position position) {
         super(name, position);
@@ -37,11 +31,11 @@ public class WashingStation extends Station {
         log("INIT", "WashingStation initialized");
     }
     
-    // --- Getters untuk Progress Bar (Progress 0.0 - 1.0) ---
+    
     
     @Override
     public float getProgressRatio() {
-        // Mengembalikan progress ratio (0.0 - 1.0) berdasarkan currentProgress
+        
         if (GameConfig.WASHING_REQUIRED_TIME_MS == 0 || plateInWash == null || currentWasher == null) {
             return 0.0f;
         }
@@ -49,28 +43,27 @@ public class WashingStation extends Station {
     }
     
     @Override
+        
     public boolean isActive() {
-        // Aktif jika ada progress (bahkan saat paused), belum selesai
+        
         return currentProgress > 0 && currentProgress < GameConfig.WASHING_REQUIRED_TIME_MS;
     }
-    // -------------------------------------------------------
+    
     
     public void setOutputRack(Rack rack) {
         this.outputRackReference = rack;
         log("INIT", "Sink linked to Rack at " + rack.getPosition());
     }
     
-    /**
-     * Update loop: Memajukan timer pencucian hanya jika Chef sedang Busy.
-     * Chef dapat bergerak, progress akan pause tapi tidak hilang.
-     */
+    
     @Override
+        
     public void update(long deltaTime) {
-        // Timer hanya berjalan jika ini adalah active station DAN Chef sedang mencuci DAN busy
+        
         if (this == activeWashingStation && currentWasher != null && currentWasher.isBusy() && plateInWash != null) {
             currentProgress += deltaTime;
             
-            // Log progress (optional, bisa dihapus jika tidak ingin ada log per detik)
+            
             if (logTimer >= GameConfig.WASHING_LOG_INTERVAL_MS) {
                 int percentage = (int)(getProgressRatio() * 100);
                 log("TIMER", "WASHING: Progress " + percentage + "%.");
@@ -83,30 +76,29 @@ public class WashingStation extends Station {
                 finishWashing();
             }
         }
-        // Jika chef bergerak (not busy), progress tetap ada tapi tidak bertambah
+        
     }
 
-    /**
-     * Mengatur interaksi Chef dengan Washing Station (SINK/RACK).
-     */
+    
     @Override
+        
     public void onInteract(Chef chef) {
         if (chef == null) return;
         Item itemHand = chef.getInventory();
 
-        // SCENARIO 4: PAUSE CUCI (Chef dapat bergerak, progress tetap)
+        
         if (chef.isBusy() && chef == currentWasher) {
             chef.setBusy(false);
-            // Clear activeWashingStation so chef can resume at this station later
+            
             if (activeWashingStation == this) {
                 activeWashingStation = null;
             }
-            // Keep currentWasher to allow resuming
+            
             log("INFO", "PAUSED: Washing paused (Progress kept: " + (int)currentProgress + "ms).");
             return;
         }
 
-        // SCENARIO 1: DROP DIRTY PLATE (Input)
+        
         if (itemHand instanceof Plate) {
             Plate p = (Plate) itemHand;
             if (!p.isClean()) {
@@ -119,27 +111,27 @@ public class WashingStation extends Station {
             return;
         }
 
-        // SCENARIO 3: START/RESUME WASHING (di SINK)
+        
         if (itemHand == null) {
             if (plateInWash == null && !dirtyPlates.isEmpty()) {
                 plateInWash = dirtyPlates.pop();
-                currentProgress = 0; // Reset progress for new plate 
+                currentProgress = 0; 
             }
             
             if (plateInWash != null) {
-                // Pastikan outputRackReference sudah diset sebelum mulai
+                
                 if (outputRackReference == null) {
                     log("ERROR", "Washing Rack is not connected!");
                     return;
                 }
                 
-                // If switching to a different station, reset the previous station's progress
+                
                 if (activeWashingStation != null && activeWashingStation != this) {
                     activeWashingStation.resetWashingProgress();
                 }
                 activeWashingStation = this;
                 
-                // Start or Resume washing
+                
                 String action = (currentProgress > 0) ? "RESUMED" : "STARTED";
                 this.currentWasher = chef;
                 chef.setBusy(true); 
@@ -153,9 +145,8 @@ public class WashingStation extends Station {
         }
     }
 
-    /**
-     * Menyelesaikan proses cuci: Pindahkan piring ke RACK secara OTOMATIS dan melepas Chef.
-     */
+    
+        
     private void finishWashing() {
         if (plateInWash != null) {
             plateInWash.setClean(true); 
@@ -168,23 +159,24 @@ public class WashingStation extends Station {
             }
         }
         
-        // Reset state SINK
+        
         this.currentProgress = 0;
         this.plateInWash = null;
         
-        // Lepas Chef (Un-freeze)
+        
         if (currentWasher != null) {
             currentWasher.setBusy(false);
             currentWasher = null;
         }
         
-        // Clear active station
+        
         if (activeWashingStation == this) {
             activeWashingStation = null;
         }
     }
     
-    /** Helper to reset progress when chef switches to another washing station */
+    
+        
     private void resetWashingProgress() {
         if (currentWasher != null) {
             currentWasher.setBusy(false);

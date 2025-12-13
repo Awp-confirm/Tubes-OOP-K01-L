@@ -17,6 +17,7 @@ public class FishCucumberRoll extends Recipe {
         super("Fish Cucumber Roll", createRequirements());
     }
 
+        
     private static List<IngredientRequirement> createRequirements() {
         return Arrays.asList(
             new IngredientRequirement(Nori.class, IngredientState.RAW),

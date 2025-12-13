@@ -8,23 +8,10 @@ import nimons.entity.item.ingredient.Rice;
 import nimons.entity.item.ingredient.Shrimp;
 import nimons.entity.order.Recipe;
 
-/**
- * BUILDER PATTERN - Predefined Recipe Templates
- * 
- * Class ini menyediakan pre-configured RecipeBuilder untuk common recipes.
- * Ini adalah contoh penggunaan Builder Pattern dengan template approach.
- * 
- * Manfaat:
- * 1. Consistency: Recipe definitions terpusat di satu tempat
- * 2. Reusability: Template dapat digunakan berulang kali
- * 3. Easy Maintenance: Mudah update recipe definitions
- * 4. Type Safety: Compile-time checking untuk recipe creation
- */
 public class RecipeTemplates {
     
-    /**
-     * Template untuk Kappa Maki (Cucumber Roll)
-     */
+    
+        
     public static Recipe createKappaMaki() {
         return new RecipeBuilder()
             .setName("Kappa Maki")
@@ -37,9 +24,8 @@ public class RecipeTemplates {
             .build();
     }
     
-    /**
-     * Template untuk Sakana Maki (Fish Roll)
-     */
+    
+        
     public static Recipe createSakanaMaki() {
         return new RecipeBuilder()
             .setName("Sakana Maki")
@@ -52,9 +38,8 @@ public class RecipeTemplates {
             .build();
     }
     
-    /**
-     * Template untuk Ebi Maki (Shrimp Roll)
-     */
+    
+        
     public static Recipe createEbiMaki() {
         return new RecipeBuilder()
             .setName("Ebi Maki")
@@ -67,9 +52,8 @@ public class RecipeTemplates {
             .build();
     }
     
-    /**
-     * Template untuk Fish Cucumber Roll (Advanced)
-     */
+    
+        
     public static Recipe createFishCucumberRoll() {
         return new RecipeBuilder()
             .setName("Fish Cucumber Roll")
@@ -83,22 +67,14 @@ public class RecipeTemplates {
             .build();
     }
     
-    /**
-     * Custom builder untuk membuat recipe baru
-     * Mengembalikan fresh RecipeBuilder untuk customization
-     */
+    
+        
     public static RecipeBuilder custom() {
         return new RecipeBuilder();
     }
     
-    /**
-     * Create recipe berdasarkan nama template
-     * Factory-like method untuk dynamic recipe creation
-     * 
-     * @param templateName Nama template recipe
-     * @return Recipe yang sesuai
-     * @throws IllegalArgumentException jika template tidak ditemukan
-     */
+    
+        
     public static Recipe createFromTemplate(String templateName) {
         switch (templateName.toLowerCase()) {
             case "kappa_maki":
@@ -122,9 +98,7 @@ public class RecipeTemplates {
         }
     }
     
-    /**
-     * Get all available template names
-     */
+    
     public static String[] getAvailableTemplates() {
         return new String[] {
             "kappa_maki",

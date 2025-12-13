@@ -14,7 +14,7 @@ public class Recipe {
         this.requirements = requirements;
     }
 
-    // getters & setters
+    
     public String getName() { 
         return name; 
     }

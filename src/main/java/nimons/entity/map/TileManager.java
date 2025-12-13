@@ -20,7 +20,7 @@ public class TileManager {
         this.tiles = tiles;
     }
 
-    // getters & setters
+    
     public int getWidth() {
         return width;
     }
@@ -45,17 +45,14 @@ public class TileManager {
         this.tiles = tiles;
     }
 
-    /**
-     * Check if position is within map bounds
-     */
+    
+        
     public boolean isInBounds(Position pos) {
         return pos.getX() >= 0 && pos.getX() < width &&
                pos.getY() >= 0 && pos.getY() < height;
     }
 
-    /**
-     * Get tile at position
-     */
+    
     public Tile getTileAt(Position pos) {
         if (!isInBounds(pos)) {
             return null;
@@ -63,9 +60,8 @@ public class TileManager {
         return tiles[pos.getY()][pos.getX()];
     }
 
-    /**
-     * Check if position is walkable
-     */
+    
+        
     public boolean isWalkable(Position pos) {
         if (!isInBounds(pos)) {
             return false;
@@ -74,25 +70,20 @@ public class TileManager {
         return tile != null && tile.isWalkable();
     }
 
-    /**
-     * Get station at position
-     */
+    
     public Station getStationAt(Position pos) {
         Tile tile = getTileAt(pos);
         return tile != null ? tile.getStation() : null;
     }
 
-    /**
-     * Get item at position
-     */
+    
     public Item getItemAt(Position pos) {
         Tile tile = getTileAt(pos);
         return tile != null ? tile.getItemOnTile() : null;
     }
 
-    /**
-     * Place item on tile
-     */
+    
+        
     public void placeItem(Position pos, Item item) {
         Tile tile = getTileAt(pos);
         if (tile != null) {
@@ -100,9 +91,8 @@ public class TileManager {
         }
     }
 
-    /**
-     * Remove item from tile
-     */
+    
+        
     public void removeItem(Position pos) {
         Tile tile = getTileAt(pos);
         if (tile != null) {
@@ -110,9 +100,7 @@ public class TileManager {
         }
     }
 
-    /**
-     * Get spawn points (placeholder)
-     */
+    
     public List<Position> getSpawnPoints() {
         return null;
     }

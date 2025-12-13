@@ -2,9 +2,6 @@ package nimons.exceptions;
 
 import java.util.List;
 
-/**
- * Exception thrown when no matching recipe is found for the given ingredients.
- */
 public class RecipeNotFoundException extends GameException {
     
     private List<String> ingredientNames;
