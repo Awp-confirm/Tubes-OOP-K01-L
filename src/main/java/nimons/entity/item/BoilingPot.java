@@ -22,6 +22,7 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
         this.capacity = capacity;
     }
 
+    // getters & setters
     @Override
     public int capacity() { 
         return capacity; 
@@ -36,19 +37,21 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
         this.capacity = capacity; 
     }
 
+    // interface methods
     @Override 
     public boolean isPortable() { 
         return super.isPortable(); 
     }
 
     @Override 
-    public boolean canAccept(Preparable ingredient) {
-        // Proses validasi: cek apakah ingredient adalah Rice/Pasta dan bisa dimasak
+    public boolean canAccept(Preparable ingredient) { 
+        // Boiling pot hanya bisa menerima Rice atau Pasta
         Set<Preparable> contents = getContents();
         if (contents == null || ingredient == null) {
             return false;
         }
         
+        // Cek apakah ingredient adalah Rice atau Pasta
         if (ingredient instanceof nimons.entity.item.Ingredient) {
             nimons.entity.item.Ingredient ing = (nimons.entity.item.Ingredient) ingredient;
             String ingredientType = ing.getId();
@@ -86,7 +89,7 @@ public class BoilingPot extends KitchenUtensil implements CookingDevice {
 
     @Override 
     public void startCooking() {
-        // Proses memasak: panggil cook() untuk semua ingredient yang ada
+        // Masak semua ingredient dalam pot
         if (getContents() != null) {
             for (Preparable ingredient : getContents()) {
                 if (ingredient.canBeCooked()) {

@@ -14,6 +14,7 @@ public abstract class Item {
         this.portable = portable;
     }
 
+    // getter & setter
     public String getId() { 
         return id; 
     }

@@ -14,6 +14,7 @@ public class Chef {
     private ChefAction currentAction;
     private boolean busy;
     
+    // Dash attributes
     private boolean isDashing;
     private long lastDashTime;
     
@@ -33,6 +34,7 @@ public class Chef {
         this.lastDashTime = 0;
     }
 
+    // getters & setters
     public String getId() { 
         return id; 
     }
@@ -99,7 +101,7 @@ public class Chef {
 
     public void move(Direction direction) {
         if (this.busy) {
-            return;
+            return; // Cannot move while busy
         }
         
         Position newPosition = calculateNewPosition(direction);
@@ -112,7 +114,12 @@ public class Chef {
     }
     
     /**
-     * Menghitung posisi berdasarkan arah dan jarak
+     * Calculate position in a given direction with specified distance
+     * 
+     * @param current starting position
+     * @param direction direction to move
+     * @param distance number of tiles to move
+     * @return new position
      */
     private Position calculatePositionInDirection(Position current, Direction direction, int distance) {
         int newX = current.getX();
@@ -137,6 +144,11 @@ public class Chef {
     }
 
     public boolean canMoveTo(Position targetPosition) {
+        // Movement rules:
+        // - Cannot move if busy
+        // - Cannot move to wall
+        // - Cannot move to station tile
+        // - Cannot move to tile occupied by another chef
         return !this.busy;
     }
 
@@ -176,7 +188,12 @@ public class Chef {
     }
     
     /**
-     * Melakukan dash dengan cooldown
+     * Dash ke arah yang dituju dengan jarak beberapa tile
+     * Memiliki cooldown
+     * 
+     * @param direction arah dash
+     * @param currentTime waktu saat ini (System.nanoTime())
+     * @return posisi target dash, atau null jika gagal
      */
     public Position dash(Direction direction, long currentTime) {
         long timeSinceLastDash = (currentTime - lastDashTime) / NANOSECONDS_TO_MS;
@@ -198,7 +215,10 @@ public class Chef {
     }
     
     /**
-     * Mengecek apakah dash masih dalam cooldown
+     * Cek apakah dash sedang dalam cooldown
+     * 
+     * @param currentTime waktu saat ini (System.nanoTime())
+     * @return true jika masih cooldown
      */
     public boolean isDashOnCooldown(long currentTime) {
         long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000;
@@ -206,7 +226,10 @@ public class Chef {
     }
     
     /**
-     * Mengembalikan sisa waktu cooldown dash
+     * Get sisa cooldown dash dalam milliseconds
+     * 
+     * @param currentTime waktu saat ini (System.nanoTime())
+     * @return sisa cooldown (ms), atau 0 jika sudah bisa dash
      */
     public long getDashCooldownRemaining(long currentTime) {
         long timeSinceLastDash = (currentTime - lastDashTime) / 1_000_000;

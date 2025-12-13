@@ -20,6 +20,7 @@ public class TileManager {
         this.tiles = tiles;
     }
 
+    // getters & setters
     public int getWidth() {
         return width;
     }
@@ -45,7 +46,7 @@ public class TileManager {
     }
 
     /**
-     * Mengecek apakah posisi berada dalam batas map
+     * Check if position is within map bounds
      */
     public boolean isInBounds(Position pos) {
         return pos.getX() >= 0 && pos.getX() < width &&
@@ -53,7 +54,7 @@ public class TileManager {
     }
 
     /**
-     * Mengembalikan tile pada posisi tertentu
+     * Get tile at position
      */
     public Tile getTileAt(Position pos) {
         if (!isInBounds(pos)) {
@@ -63,7 +64,7 @@ public class TileManager {
     }
 
     /**
-     * Mengecek apakah posisi dapat dilalui
+     * Check if position is walkable
      */
     public boolean isWalkable(Position pos) {
         if (!isInBounds(pos)) {
@@ -74,7 +75,7 @@ public class TileManager {
     }
 
     /**
-     * Mengembalikan station pada posisi tertentu
+     * Get station at position
      */
     public Station getStationAt(Position pos) {
         Tile tile = getTileAt(pos);
@@ -82,7 +83,7 @@ public class TileManager {
     }
 
     /**
-     * Mengembalikan item pada posisi tertentu
+     * Get item at position
      */
     public Item getItemAt(Position pos) {
         Tile tile = getTileAt(pos);
@@ -90,7 +91,7 @@ public class TileManager {
     }
 
     /**
-     * Menempatkan item pada tile
+     * Place item on tile
      */
     public void placeItem(Position pos, Item item) {
         Tile tile = getTileAt(pos);
@@ -100,7 +101,7 @@ public class TileManager {
     }
 
     /**
-     * Menghapus item dari tile
+     * Remove item from tile
      */
     public void removeItem(Position pos) {
         Tile tile = getTileAt(pos);
@@ -110,7 +111,7 @@ public class TileManager {
     }
 
     /**
-     * Mengembalikan daftar spawn points
+     * Get spawn points (placeholder)
      */
     public List<Position> getSpawnPoints() {
         return null;
